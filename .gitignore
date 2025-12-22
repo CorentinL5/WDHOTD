@@ -1,0 +1,49 @@
+# Configuration et variables d'environnement
+.env
+.env.local
+config.php
+
+# IDE et éditeurs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+*.iml
+
+# Logs
+*.log
+logs/
+error_log
+
+# Fichiers temporaires
+*.tmp
+*.temp
+*.cache
+tmp/
+temp/
+.import_lock
+
+# OS
+Thumbs.db
+Desktop.ini
+
+# Node modules (si vous ajoutez des outils front-end)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Backup et fichiers de sauvegarde
+*.bak
+*.backup
+*.sql.gz
+*.zip
+
+# Fichiers de session PHP
+sess_*
+
+# Composer (si utilisé)
+vendor/
+composer.lock
+
