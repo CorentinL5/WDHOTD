@@ -110,7 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <h2 class="tiktok-card-title">${escapeHtml(title)}</h2>
                     ${year ? `<div class="tiktok-card-year">${year}</div>` : ''}
                     ${extract ? `<div class="tiktok-card-extract">${truncateText(extract, 200)}</div>` : ''}
-                    ${item.wikipedia_url ? `<a href="${item.wikipedia_url}" target="_blank" rel="noopener" class="tiktok-card-link">En savoir plus →</a>` : ''}
+                    ${item.wikipedia_url ? `<a href="${item.wikipedia_url}" target="_blank" rel="noopener" class="tiktok-card-link">Learn more →</a>` : ''}
                 </div>
             `;
         } else {
@@ -122,7 +122,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <h2 class="tiktok-card-title">${escapeHtml(title)}</h2>
                     ${year ? `<div class="tiktok-card-year">${year}</div>` : ''}
                     ${extract ? `<div class="tiktok-card-extract">${truncateText(extract, 300)}</div>` : ''}
-                    ${item.wikipedia_url ? `<a href="${item.wikipedia_url}" target="_blank" rel="noopener" class="tiktok-card-link">En savoir plus →</a>` : ''}
+                    ${item.wikipedia_url ? `<a href="${item.wikipedia_url}" target="_blank" rel="noopener" class="tiktok-card-link">Learn more →</a>` : ''}
                 </div>
             `;
         }
@@ -190,7 +190,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Lien Wikipedia
         const wikiLink = item.wikipedia_url
             ? `<a href="${item.wikipedia_url}" target="_blank" rel="noopener noreferrer" class="wiki-link">
-                Voir sur Wikipedia →
+                View on Wikipedia →
                </a>`
             : "";
 

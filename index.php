@@ -1,13 +1,13 @@
 <?php require __DIR__ . '/config.php'; ?>
 
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>WDHOTD – Ce jour dans l'histoire</title>
-        <meta name="description" content="Découvrez les événements historiques, naissances, décès et fêtes qui se sont produits ce jour dans l'histoire.">
-        <meta name="keywords" content="histoire, événements historiques, ce jour dans l'histoire, naissances, décès">
+        <title>WDHOTD – What Happened On This Day</title>
+        <meta name="description" content="Discover historical events, births, deaths and holidays that happened on this day in history.">
+        <meta name="keywords" content="history, historical events, on this day, births, deaths">
         <meta name="author" content="WDHOTD">
         <link rel="stylesheet" href="assets/css/style.css">
         <meta name="theme-color" content="#0a0a0a">
