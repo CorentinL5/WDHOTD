@@ -1,0 +1,335 @@
+/* -----------------------------------------------------
+   BASE â€“ Mobile first
+----------------------------------------------------- */
+
+:root {
+    --bg: #0a0a0a;
+    --text: #eaeaea;
+    --card-bg: #1a1a1a;
+    --accent: #ff3b30;
+    --radius: 14px;
+    --transition: 0.25s ease;
+    --max-width: 900px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1.5;
+}
+
+/* -----------------------------------------------------
+   HEADER
+----------------------------------------------------- */
+
+header {
+    position: sticky;
+    display: block;
+    top: 0;
+    z-index: 5;
+    background: var(--bg);
+}
+
+header h1 {
+    text-align: center;
+    padding: 18px 12px 10px;
+    font-size: 1.7rem;
+    font-weight: 700;
+}
+
+/* -----------------------------------------------------
+   FILTER BAR â€“ mobile : scroll horizontal
+----------------------------------------------------- */
+
+.filters {
+    display: flex;
+    justify-content: center;
+    overflow-x: auto;
+    gap: 8px;
+    padding: 0 12px 12px;
+    white-space: nowrap;
+    scrollbar-width: none;
+    flex-wrap: wrap;
+}
+
+.filters::-webkit-scrollbar {
+    display: none;
+}
+
+.filter {
+    padding: 7px 14px;
+    background: #151515;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    flex: 0 0 auto;
+    transition: background var(--transition), transform var(--transition), opacity var(--transition);
+    opacity: 0.8;
+}
+
+.filter:first-child {
+    width: 65%;
+    margin: 0 17.5%;
+}
+
+.filter.active {
+    background: var(--accent);
+    opacity: 1;
+}
+
+/* -----------------------------------------------------
+   CONTAINER & GRID
+----------------------------------------------------- */
+
+.container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 8px 10px 24px;
+    flex-direction: column;
+    align-items: center;
+}
+
+#feed {
+    display: grid;
+    grid-template-columns: 1fr;   /* mobile par dÃ©faut */
+    gap: 12px;
+}
+
+/* tablette */
+@media (min-width: 600px) {
+    #feed {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+    }
+}
+
+/* desktop */
+@media (min-width: 900px) {
+    #feed {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+    }
+}
+
+/* -----------------------------------------------------
+   CARD â€“ image full random mais clean
+----------------------------------------------------- */
+
+.card {
+    position: relative;
+    height: var(--card-height, 180px); /* hauteur par dÃ©faut */
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: #222;
+    cursor: pointer;
+    display: flex;
+    align-items: flex-end;
+    padding: 12px;
+    transition: height 0.25s ease;
+}
+
+
+.card .bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    filter: brightness(0.55);
+    transition: transform 0.35s ease, filter 0.35s ease;
+}
+
+.card-content {
+    position: relative;
+    z-index: 1;
+    color: #ffffff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+}
+
+.card h3 {
+    font-size: 1.05rem;
+    margin-bottom: 4px;
+}
+
+.card .year {
+    font-size: 0.85rem;
+    opacity: 0.85;
+}
+
+/* TAG in card top right */
+.card .tag {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0,0,0,0.55);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    text-transform: capitalize;
+    color: #fff;
+    z-index: 3;
+    backdrop-filter: blur(4px);
+}
+
+/* hover (desktop only) */
+@media (hover: hover) and (pointer: fine) {
+    .card:hover .bg {
+        transform: scale(1.07);
+        filter: brightness(0.7);
+    }
+}
+
+/* -----------------------------------------------------
+   LOAD MORE
+----------------------------------------------------- */
+
+.load-more {
+    margin-top: 16px;
+    padding: 12px 7.5%;
+    text-align: center;
+    cursor: pointer;
+    opacity: 0.75;
+    font-size: 0.95rem;
+    border-radius: 999px;
+    background: #161616;
+}
+
+.load-more:hover {
+    opacity: 1;
+}
+
+/* -----------------------------------------------------
+   DETAIL PANEL â€“ mobile: fullscreen, desktop: slide-in
+----------------------------------------------------- */
+
+.detail-panel {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: #111;
+    padding: 16px 14px 20px;
+    z-index: 9999;
+    transform: translateX(100%);
+    transition: transform var(--transition);
+    overflow-y: auto;
+}
+
+/* Desktop: slide depuis la droite, largeur fixe */
+@media (min-width: 900px) {
+    .detail-panel {
+        left: auto;
+        width: 420px;
+    }
+}
+
+.detail-panel.open {
+    transform: translateX(0);
+}
+
+.detail-content h2 {
+    font-size: 1.4rem;
+    margin-bottom: 6px;
+}
+
+.detail-content .meta {
+    font-size: 0.9rem;
+    opacity: 0.7;
+    margin-bottom: 12px;
+}
+
+.detail-content a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.detail-content a:hover {
+    text-decoration: underline;
+}
+
+.detail-close {
+    margin-top: 18px;
+    padding: 10px;
+    background: #222;
+    border-radius: var(--radius);
+    text-align: center;
+    cursor: pointer;
+    opacity: 0.75;
+    transition: opacity var(--transition);
+}
+
+.detail-close:hover {
+    opacity: 1;
+}
+
+.detail-image {
+    width: 75%;
+    margin: 0 auto 14px;
+}
+
+.detail-image img {
+    height: 100%;
+    width: 100%;
+    border-radius: var(--radius);
+}
+
+/* Quand le panel est ouvert â†’ bloquer scrolling du feed */
+body:has(#detailPanel.open) {
+    overflow: hidden;
+    height: 100vh;
+}
+
+
+body:has(#detailPanel.open) .container {
+    filter: blur(6px) brightness(0.6);
+    transition: filter 0.25s ease;
+    pointer-events: none; /* bloque les clics derriÃ¨re */
+}
+
+/* =============================================
+   FOOTER STYLE PATATE — Minimal, clean, pro
+============================================= */
+
+.footer {
+    margin-top: 50px;
+    padding: 25px 18px 30px;
+    background: #0d0d0d;
+    border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.inner {
+    max-width: 1100px;
+    margin: auto;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+
+    text-align: center;
+}
+
+.left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.title {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.copy {
+    font-size: 0.85rem;
+    opacity: 0.55;
+}
