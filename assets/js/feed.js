@@ -61,7 +61,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const feedEl = document.getElementById("feed");
     const loadingIndicator = document.getElementById("loadingIndicator");
     const statsContainer = document.getElementById("statsContainer");
-    const refreshBtn = document.getElementById("refreshBtn");
 
     if (!feedEl) {
         console.error("Feed element not found");
@@ -420,57 +419,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /**
-     * Partage avec l'API Web Share native ou fallback vers réseaux sociaux
-     */
-    async function shareOnSocial(platform, url, title, text) {
-        // Si c'est "native" ou si l'API Web Share est disponible, utiliser le partage natif
-        if (platform === 'native' || (navigator.share && !platform)) {
-            try {
-                await navigator.share({
-                    title: title,
-                    text: text,
-                    url: url
-                });
-                return;
-            } catch (error) {
-                // L'utilisateur a annulé ou erreur, continuer avec le fallback
-                if (error.name !== 'AbortError') {
-                    console.error('Erreur de partage:', error);
-                }
-                // Si l'utilisateur annule, ne rien faire
-                if (error.name === 'AbortError') return;
-            }
-        }
-        
-        // Fallback vers les réseaux sociaux
-        const encodedUrl = encodeURIComponent(url);
-        const encodedTitle = encodeURIComponent(title);
-        const encodedText = encodeURIComponent(text);
-        
-        let shareUrl = '';
-        switch(platform) {
-            case 'twitter':
-                shareUrl = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`;
-                break;
-            case 'facebook':
-                shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
-                break;
-            case 'linkedin':
-                shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
-                break;
-            case 'whatsapp':
-                shareUrl = `https://wa.me/?text=${encodedTitle}%20${encodedUrl}`;
-                break;
-            default:
-                return;
-        }
-        
-        if (shareUrl) {
-            window.open(shareUrl, '_blank', 'width=600,height=400');
-        }
-    }
-    
-    /**
      * Ouvre le panneau de détail
      */
     function openDetail(item) {
@@ -485,9 +433,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const extractHtml = item.extract_html || "";
         const extractText = item.extract_short || "";
         const extract = extractHtml || escapeHtml(extractText);
-        const currentUrl = window.location.href;
-        const shareText = `${title}${year ? ` (${year})` : ''} - Découvrez l'histoire du jour sur WDHOTD`;
-
         // Image avec lazy loading
         const img = item.thumbnail
             ? `<div class="detail-image">
@@ -504,35 +449,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 Voir sur Wikipedia →
                </a>`
             : "";
-        
-        // Boutons de partage - Ajouter le bouton natif si disponible
-        const hasNativeShare = navigator.share;
-        const nativeShareBtn = hasNativeShare ? `
-            <button class="share-btn share-native" data-platform="native" aria-label="Partager" title="Partager">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>
-            </button>
-        ` : '';
-        
-        const shareButtons = `
-            <div class="share-buttons">
-                ${nativeShareBtn}
-                <button class="share-btn" data-platform="twitter" aria-label="Partager sur Twitter" title="Twitter">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/></svg>
-                </button>
-                <button class="share-btn" data-platform="facebook" aria-label="Partager sur Facebook" title="Facebook">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>
-                </button>
-                <button class="share-btn" data-platform="linkedin" aria-label="Partager sur LinkedIn" title="LinkedIn">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
-                </button>
-                <button class="share-btn" data-platform="whatsapp" aria-label="Partager sur WhatsApp" title="WhatsApp">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-                </button>
-                <button class="share-btn copy-link" aria-label="Copier le lien" title="Copier le lien">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-                </button>
-            </div>
-        `;
 
         // Construire le HTML
         detailContent.innerHTML = `
@@ -540,31 +456,8 @@ document.addEventListener("DOMContentLoaded", () => {
             <h2>${escapeHtml(title)}</h2>
             ${meta ? `<div class="meta">${meta}</div>` : ""}
             <div class="extract">${extract}</div>
-            ${shareButtons}
             ${wikiLink}
         `;
-        
-        // Ajouter les event listeners pour le partage
-        const shareBtns = detailContent.querySelectorAll('.share-btn');
-        shareBtns.forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                const platform = btn.getAttribute('data-platform');
-                if (platform) {
-                    await shareOnSocial(platform, currentUrl, title, shareText);
-                } else if (btn.classList.contains('copy-link')) {
-                    try {
-                        await navigator.clipboard.writeText(currentUrl);
-                        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
-                        setTimeout(() => {
-                            btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>';
-                        }, 2000);
-                    } catch (err) {
-                        console.error('Erreur lors de la copie:', err);
-                    }
-                }
-            });
-        });
 
         // Ajouter l'historique pour gérer le bouton retour
         history.pushState({ detail: true }, "");
@@ -833,34 +726,8 @@ document.addEventListener("DOMContentLoaded", () => {
         observeLastCard();
     }
     
-    /**
-     * Initialise le bouton de rafraîchissement
-     */
-    function initRefresh() {
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', () => {
-                // Animation de rotation
-                refreshBtn.style.transform = 'rotate(360deg)';
-                
-                // Réinitialiser et recharger
-                viewedItems.clear();
-                localStorage.removeItem(CONFIG.viewedItemsKey);
-                localStorage.removeItem(CONFIG.scrollPositionKey);
-                
-                // Recharger le feed
-                loadFeed(true).then(() => {
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                    setTimeout(() => {
-                        refreshBtn.style.transform = '';
-                    }, 500);
-                });
-            });
-        }
-    }
-    
     // Initialisation
     initialize();
     initFilters();
     initScrollProgress();
-    initRefresh();
 });

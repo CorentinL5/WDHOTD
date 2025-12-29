@@ -83,11 +83,6 @@ $description = "Découvrez les événements historiques, naissances, décès et 
                     <div class="header-subtitle">What Happened On This Day</div>
                     <div class="header-date"><?= htmlspecialchars($currentDate) ?></div>
                 </div>
-                <button id="refreshBtn" class="refresh-btn" aria-label="Actualiser" title="Actualiser">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-                    </svg>
-                </button>
                 
                 <!-- Stats compactes -->
                 <div class="stats-compact" id="statsContainer">
