@@ -291,7 +291,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /**
-     * Crée une carte TikTok (pleine page)
+     * Détecte si on est sur desktop
+     */
+    function isDesktop() {
+        return window.matchMedia("(min-width: 768px)").matches;
+    }
+
+    /**
+     * Crée une carte TikTok (pleine page mobile, carte desktop)
      */
     function createTikTokCard(item) {
         const card = document.createElement("div");
@@ -303,29 +310,47 @@ document.addEventListener("DOMContentLoaded", () => {
         const title = item.selected_title || "Untitled";
         const year = item.year || "";
         const extract = item.extract_html || item.extract_short || "";
+        const desktop = isDesktop();
 
-        // Design différent selon présence d'image
+        // Design différent selon présence d'image et device
         if (hasImage) {
-            card.innerHTML = `
-                <div class="tiktok-card-bg" data-bg="${item.thumbnail}"></div>
-                <div class="tiktok-card-overlay"></div>
-                <div class="tiktok-card-content">
-                    <div class="tiktok-card-tag tag-${type}">${type}</div>
-                    <h2 class="tiktok-card-title">${escapeHtml(title)}</h2>
-                    ${year ? `<div class="tiktok-card-year">${year}</div>` : ''}
-                    ${extract ? `<div class="tiktok-card-extract">${truncateText(extract, 200)}</div>` : ''}
-                    ${item.wikipedia_url ? `<a href="${item.wikipedia_url}" target="_blank" rel="noopener" class="tiktok-card-link">Learn more →</a>` : ''}
-                </div>
-            `;
+            if (desktop) {
+                // Desktop: image en header
+                card.innerHTML = `
+                    <div class="tiktok-card-bg" data-bg="${item.thumbnail}"></div>
+                    <div class="tiktok-card-overlay"></div>
+                    <div class="tiktok-card-content">
+                        <div class="tiktok-card-tag tag-${type}">${type}</div>
+                        <h2 class="tiktok-card-title">${escapeHtml(title)}</h2>
+                        ${year ? `<div class="tiktok-card-year">${year}</div>` : ''}
+                        ${extract ? `<div class="tiktok-card-extract">${truncateText(extract, 300)}</div>` : ''}
+                        ${item.wikipedia_url ? `<a href="${item.wikipedia_url}" target="_blank" rel="noopener" class="tiktok-card-link">Learn more →</a>` : ''}
+                    </div>
+                `;
+            } else {
+                // Mobile: image en arrière-plan
+                card.innerHTML = `
+                    <div class="tiktok-card-bg" data-bg="${item.thumbnail}"></div>
+                    <div class="tiktok-card-overlay"></div>
+                    <div class="tiktok-card-content">
+                        <div class="tiktok-card-tag tag-${type}">${type}</div>
+                        <h2 class="tiktok-card-title">${escapeHtml(title)}</h2>
+                        ${year ? `<div class="tiktok-card-year">${year}</div>` : ''}
+                        ${extract ? `<div class="tiktok-card-extract">${truncateText(extract, 200)}</div>` : ''}
+                        ${item.wikipedia_url ? `<a href="${item.wikipedia_url}" target="_blank" rel="noopener" class="tiktok-card-link">Learn more →</a>` : ''}
+                    </div>
+                `;
+            }
         } else {
             // Design sans image - fond coloré selon le type
             card.innerHTML = `
                 <div class="tiktok-card-bg-no-image bg-${type}"></div>
+                ${!desktop ? '<div class="tiktok-card-overlay"></div>' : ''}
                 <div class="tiktok-card-content">
                     <div class="tiktok-card-tag tag-${type}">${type}</div>
                     <h2 class="tiktok-card-title">${escapeHtml(title)}</h2>
                     ${year ? `<div class="tiktok-card-year">${year}</div>` : ''}
-                    ${extract ? `<div class="tiktok-card-extract">${truncateText(extract, 300)}</div>` : ''}
+                    ${extract ? `<div class="tiktok-card-extract">${truncateText(extract, desktop ? 300 : 300)}</div>` : ''}
                     ${item.wikipedia_url ? `<a href="${item.wikipedia_url}" target="_blank" rel="noopener" class="tiktok-card-link">Learn more →</a>` : ''}
                 </div>
             `;

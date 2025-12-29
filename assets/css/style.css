@@ -1,5 +1,5 @@
 /* -----------------------------------------------------
-   BASE – Mobile First (sans media queries)
+   BASE – Mobile First
 ----------------------------------------------------- */
 
 :root {
@@ -8,6 +8,8 @@
     --accent: #ff3b30;
     --accent-hover: #ff5247;
     --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --card-bg: rgba(18, 18, 18, 0.8);
+    --border-color: rgba(255, 255, 255, 0.1);
 }
 
 * {
@@ -24,12 +26,25 @@ html, body {
 body {
     background: var(--bg);
     color: var(--text);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     scroll-behavior: smooth;
     overflow-y: auto;
+}
+
+/* Amélioration du contraste et de la lisibilité */
+.tiktok-card-content {
+    text-shadow: none;
+}
+
+@media (min-width: 768px) {
+    .tiktok-card-title,
+    .tiktok-card-year,
+    .tiktok-card-extract {
+        text-shadow: none;
+    }
 }
 
 /* -----------------------------------------------------
@@ -209,7 +224,7 @@ body {
     opacity: 1;
 }
 
-/* Image de fond */
+/* Image de fond - mobile (plein écran) */
 .tiktok-card-bg {
     position: absolute;
     inset: 0;
@@ -219,6 +234,7 @@ body {
     filter: brightness(0.4);
     transition: filter 0.3s ease, transform 0.3s ease;
     will-change: transform;
+    z-index: 0;
 }
 
 .tiktok-card:hover .tiktok-card-bg {
@@ -239,7 +255,7 @@ body {
     z-index: 1;
 }
 
-/* Fond coloré pour les cartes sans image */
+/* Fond coloré pour les cartes sans image - mobile */
 .tiktok-card-bg-no-image {
     position: absolute;
     inset: 0;
@@ -262,7 +278,7 @@ body {
     background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
 }
 
-/* Contenu de la carte */
+/* Contenu de la carte - mobile */
 .tiktok-card-content {
     position: relative;
     z-index: 2;
@@ -667,8 +683,353 @@ body {
 }
 
 /* -----------------------------------------------------
-   ADAPTATION AUTOMATIQUE
-   Les unités vw/vh s'adaptent automatiquement à la taille d'écran
-   Plus l'écran est large, plus les valeurs vw sont grandes
-   Plus l'écran est petit, plus les valeurs vw sont petites
+   MEDIA QUERIES - TABLET & DESKTOP
 ----------------------------------------------------- */
+
+@media (min-width: 768px) {
+    /* Header compact sur tablet/desktop */
+    .tiktok-header {
+        padding: 1.25rem 2rem;
+        backdrop-filter: blur(30px);
+        background: rgba(0, 0, 0, 0.95);
+        box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .header-content {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        gap: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .tiktok-header h1 {
+        font-size: 1.75rem;
+        margin: 0;
+        text-align: left;
+        flex-shrink: 0;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+    }
+
+    .header-subtitle {
+        font-size: 0.75rem;
+        text-align: left;
+        opacity: 0.8;
+    }
+
+    .stats-compact {
+        margin-top: 0;
+        padding: 0.75rem 1.5rem;
+        gap: 1.5rem;
+        flex-wrap: nowrap;
+    }
+
+    .stat-compact-item {
+        padding: 0.5rem 1rem;
+        gap: 0.25rem;
+    }
+
+    .stat-compact-value {
+        font-size: 1.5rem;
+    }
+
+    .stat-compact-label {
+        font-size: 0.65rem;
+    }
+
+    /* Main avec marge réduite */
+    .tiktok-main {
+        margin-top: 120px;
+        padding: 2rem;
+        max-width: 1400px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* Grille de cartes sur desktop */
+    .tiktok-feed {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 2rem;
+        padding: 0;
+    }
+
+    /* Cartes en format carte (pas plein écran) */
+    .tiktok-card {
+        min-height: 500px;
+        height: 100%;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        cursor: pointer;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .tiktok-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .tiktok-card-content {
+        width: 100%;
+        max-width: 100%;
+        padding: 2rem;
+        min-height: 500px;
+        justify-content: flex-start;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* Structure pour desktop - image en header de carte */
+    .tiktok-card {
+        flex-direction: column;
+    }
+    
+    /* Image de fond devient header sur desktop */
+    .tiktok-card .tiktok-card-bg {
+        position: relative !important;
+        inset: auto !important;
+        height: 300px !important;
+        width: 100% !important;
+        border-radius: 16px 16px 0 0;
+        filter: brightness(0.7);
+        flex-shrink: 0;
+        order: 1;
+    }
+    
+    .tiktok-card .tiktok-card-bg-no-image {
+        position: relative !important;
+        inset: auto !important;
+        height: 300px !important;
+        width: 100% !important;
+        border-radius: 16px 16px 0 0;
+        flex-shrink: 0;
+        order: 1;
+    }
+    
+    .tiktok-card:hover .tiktok-card-bg {
+        filter: brightness(0.8);
+        transform: scale(1.01);
+    }
+    
+    .tiktok-card .tiktok-card-overlay {
+        position: absolute !important;
+        inset: 0 auto auto 0 !important;
+        height: 300px !important;
+        width: 100% !important;
+        border-radius: 16px 16px 0 0;
+        background: linear-gradient(
+            to bottom,
+            rgba(0, 0, 0, 0.1) 0%,
+            rgba(0, 0, 0, 0.2) 100%
+        );
+        order: 1;
+    }
+    
+    .tiktok-card .tiktok-card-content {
+        position: relative !important;
+        z-index: 1;
+        background: var(--card-bg);
+        color: var(--text);
+        padding: 2rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        order: 2;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    /* Pour les cartes sans image sur desktop */
+    .tiktok-card .tiktok-card-bg-no-image + .tiktok-card-content {
+        background: transparent;
+        color: #ffffff;
+    }
+
+    .tiktok-card-tag {
+        padding: 0.5rem 1rem;
+        font-size: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .tiktok-card-title {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        line-height: 1.3;
+        color: var(--text);
+        font-weight: 700;
+    }
+
+    .tiktok-card-year {
+        font-size: 1.125rem;
+        margin-bottom: 1.5rem;
+        color: rgba(255, 255, 255, 0.8);
+        font-weight: 600;
+    }
+
+    .tiktok-card-extract {
+        font-size: 0.95rem;
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .tiktok-card-link {
+        padding: 0.75rem 1.5rem;
+        font-size: 0.875rem;
+        margin-top: auto;
+        align-self: flex-start;
+    }
+    
+    /* Overlay pour desktop - plus léger */
+    .tiktok-card-overlay {
+        background: linear-gradient(
+            to bottom,
+            rgba(0, 0, 0, 0.2) 0%,
+            rgba(0, 0, 0, 0.4) 100%
+        );
+    }
+
+    /* Indicateur "vu" plus petit */
+    .tiktok-card.viewed::after {
+        top: 1rem;
+        right: 1rem;
+        width: 2rem;
+        height: 2rem;
+        font-size: 1rem;
+    }
+
+    /* Loading indicator */
+    .loading-indicator {
+        padding: 1rem;
+        bottom: 2rem;
+    }
+
+    .spinner {
+        width: 2.5rem;
+        height: 2.5rem;
+        border-width: 3px;
+    }
+
+    /* Detail panel */
+    .detail-panel {
+        padding: 3rem;
+    }
+
+    .detail-panel::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .detail-content h2 {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .detail-content .meta {
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .detail-content .extract {
+        font-size: 1.125rem;
+        margin-bottom: 2rem;
+    }
+
+    .detail-content a {
+        font-size: 1rem;
+        gap: 0.5rem;
+    }
+
+    .wiki-link {
+        margin-top: 2rem;
+        padding: 1rem 1.5rem;
+    }
+
+    .detail-image {
+        max-width: 600px;
+        margin-bottom: 2rem;
+    }
+
+    .detail-close {
+        margin-top: 2rem;
+        padding: 1rem;
+        font-size: 1rem;
+        max-width: 200px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* Scroll to top */
+    .scroll-to-top {
+        bottom: 2rem;
+        right: 2rem;
+        width: 3rem;
+        height: 3rem;
+        font-size: 1.5rem;
+    }
+
+    /* Footer */
+    .footer {
+        padding: 3rem 2rem;
+        margin-top: 4rem;
+    }
+
+    .inner {
+        gap: 1rem;
+    }
+
+    .title {
+        font-size: 1.25rem;
+    }
+
+    .copy {
+        font-size: 0.875rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .tiktok-feed {
+        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+        gap: 2.5rem;
+    }
+
+    .tiktok-card {
+        min-height: 550px;
+    }
+
+    .tiktok-card-content {
+        min-height: 550px;
+        padding: 2.5rem;
+    }
+
+    .tiktok-card-title {
+        font-size: 1.75rem;
+    }
+
+    .tiktok-main {
+        padding: 3rem;
+    }
+}
+
+@media (min-width: 1440px) {
+    .tiktok-feed {
+        grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+        gap: 3rem;
+    }
+
+    .tiktok-card {
+        min-height: 600px;
+    }
+
+    .tiktok-card-content {
+        min-height: 600px;
+        padding: 3rem;
+    }
+}
