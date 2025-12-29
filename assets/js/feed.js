@@ -61,6 +61,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const feedEl = document.getElementById("feed");
     const loadingIndicator = document.getElementById("loadingIndicator");
     const statsContainer = document.getElementById("statsContainer");
+    const refreshBtn = document.getElementById("refreshBtn");
 
     if (!feedEl) {
         console.error("Feed element not found");
@@ -419,9 +420,29 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /**
-     * Partage sur les réseaux sociaux
+     * Partage avec l'API Web Share native ou fallback vers réseaux sociaux
      */
-    function shareOnSocial(platform, url, title, text) {
+    async function shareOnSocial(platform, url, title, text) {
+        // Si c'est "native" ou si l'API Web Share est disponible, utiliser le partage natif
+        if (platform === 'native' || (navigator.share && !platform)) {
+            try {
+                await navigator.share({
+                    title: title,
+                    text: text,
+                    url: url
+                });
+                return;
+            } catch (error) {
+                // L'utilisateur a annulé ou erreur, continuer avec le fallback
+                if (error.name !== 'AbortError') {
+                    console.error('Erreur de partage:', error);
+                }
+                // Si l'utilisateur annule, ne rien faire
+                if (error.name === 'AbortError') return;
+            }
+        }
+        
+        // Fallback vers les réseaux sociaux
         const encodedUrl = encodeURIComponent(url);
         const encodedTitle = encodeURIComponent(title);
         const encodedText = encodeURIComponent(text);
@@ -444,7 +465,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
         }
         
-        window.open(shareUrl, '_blank', 'width=600,height=400');
+        if (shareUrl) {
+            window.open(shareUrl, '_blank', 'width=600,height=400');
+        }
     }
     
     /**
@@ -482,9 +505,17 @@ document.addEventListener("DOMContentLoaded", () => {
                </a>`
             : "";
         
-        // Boutons de partage
+        // Boutons de partage - Ajouter le bouton natif si disponible
+        const hasNativeShare = navigator.share;
+        const nativeShareBtn = hasNativeShare ? `
+            <button class="share-btn share-native" data-platform="native" aria-label="Partager" title="Partager">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>
+            </button>
+        ` : '';
+        
         const shareButtons = `
             <div class="share-buttons">
+                ${nativeShareBtn}
                 <button class="share-btn" data-platform="twitter" aria-label="Partager sur Twitter" title="Twitter">
                     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/></svg>
                 </button>
@@ -516,18 +547,21 @@ document.addEventListener("DOMContentLoaded", () => {
         // Ajouter les event listeners pour le partage
         const shareBtns = detailContent.querySelectorAll('.share-btn');
         shareBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const platform = btn.getAttribute('data-platform');
                 if (platform) {
-                    shareOnSocial(platform, currentUrl, title, shareText);
+                    await shareOnSocial(platform, currentUrl, title, shareText);
                 } else if (btn.classList.contains('copy-link')) {
-                    navigator.clipboard.writeText(currentUrl).then(() => {
+                    try {
+                        await navigator.clipboard.writeText(currentUrl);
                         btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
                         setTimeout(() => {
                             btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>';
                         }, 2000);
-                    });
+                    } catch (err) {
+                        console.error('Erreur lors de la copie:', err);
+                    }
                 }
             });
         });
@@ -799,8 +833,34 @@ document.addEventListener("DOMContentLoaded", () => {
         observeLastCard();
     }
     
+    /**
+     * Initialise le bouton de rafraîchissement
+     */
+    function initRefresh() {
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                // Animation de rotation
+                refreshBtn.style.transform = 'rotate(360deg)';
+                
+                // Réinitialiser et recharger
+                viewedItems.clear();
+                localStorage.removeItem(CONFIG.viewedItemsKey);
+                localStorage.removeItem(CONFIG.scrollPositionKey);
+                
+                // Recharger le feed
+                loadFeed(true).then(() => {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    setTimeout(() => {
+                        refreshBtn.style.transform = '';
+                    }, 500);
+                });
+            });
+        }
+    }
+    
     // Initialisation
     initialize();
     initFilters();
     initScrollProgress();
+    initRefresh();
 });

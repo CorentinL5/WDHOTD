@@ -74,6 +74,7 @@ body {
     justify-content: center;
     gap: 0.8vw;
     overflow: hidden;
+    position: relative;
 }
 
 .header-left {
@@ -106,6 +107,50 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     width: 100%;
+}
+
+.header-date {
+    font-size: 2.5vw;
+    opacity: 0.6;
+    margin-top: 1vw;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+}
+
+.refresh-btn {
+    position: absolute;
+    top: 3vw;
+    right: 3vw;
+    width: 10vw;
+    height: 10vw;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--transition);
+    z-index: 10;
+    padding: 0;
+}
+
+.refresh-btn svg {
+    width: 5vw;
+    height: 5vw;
+    color: rgba(255, 255, 255, 0.8);
+    transition: transform var(--transition);
+}
+
+.refresh-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: rotate(180deg);
+}
+
+.refresh-btn:active {
+    transform: rotate(360deg);
 }
 
 .stats-compact {
@@ -217,6 +262,23 @@ body {
     flex-direction: column;
     gap: 0;
     width: 100%;
+}
+
+/* Ligne de séparation subtile entre les cards */
+.tiktok-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    z-index: 5;
+    pointer-events: none;
+}
+
+.tiktok-card:last-child::after {
+    display: none;
 }
 
 /* -----------------------------------------------------
@@ -708,6 +770,12 @@ body {
     color: #25d366;
 }
 
+.share-btn.share-native:hover {
+    background: rgba(255, 59, 48, 0.2);
+    border-color: rgba(255, 59, 48, 0.5);
+    color: var(--accent);
+}
+
 /* -----------------------------------------------------
    ANIMATION CONFETTI
 ----------------------------------------------------- */
@@ -824,6 +892,21 @@ body {
         gap: 2rem;
         max-width: 1400px;
         margin: 0 auto;
+        position: relative;
+    }
+    
+    .header-content .refresh-btn {
+        position: relative;
+        top: auto;
+        right: auto;
+        width: 2.5rem;
+        height: 2.5rem;
+        margin-left: auto;
+    }
+    
+    .header-content .refresh-btn svg {
+        width: 1.25rem;
+        height: 1.25rem;
     }
 
     .header-left {
@@ -847,6 +930,25 @@ body {
         text-align: left;
         opacity: 0.8;
         width: auto;
+    }
+    
+    .header-date {
+        font-size: 0.7rem;
+        margin-top: 0.25rem;
+    }
+    
+    .refresh-btn {
+        position: relative;
+        top: auto;
+        right: auto;
+        width: 2.5rem;
+        height: 2.5rem;
+        margin-left: auto;
+    }
+    
+    .refresh-btn svg {
+        width: 1.25rem;
+        height: 1.25rem;
     }
 
     .stats-compact {
@@ -902,6 +1004,13 @@ body {
         grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
         gap: 2rem;
         padding: 0;
+    }
+    
+    /* Masquer la ligne de séparation sur desktop car on a déjà le gap */
+    @media (min-width: 768px) {
+        .tiktok-card::after {
+            display: none;
+        }
     }
 
     /* Cartes en format carte (pas plein écran) */
