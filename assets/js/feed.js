@@ -19,6 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let offset = 0;
     let isLoading = false;
     let hasMore = true;
+    let currentFilter = 'all';
     let currentDate = {
         month: new Date().getMonth() + 1,
         day: new Date().getDate()
@@ -236,8 +237,17 @@ document.addEventListener("DOMContentLoaded", () => {
     /**
      * Charge le feed depuis l'API
      */
-    async function loadFeed() {
-        if (isLoading || !hasMore) return;
+    async function loadFeed(reset = false) {
+        if (isLoading || (!hasMore && !reset)) return;
+        
+        if (reset) {
+            offset = 0;
+            hasMore = true;
+            feedEl.innerHTML = '';
+            if (lastCardObserver) {
+                lastCardObserver.disconnect();
+            }
+        }
         
         isLoading = true;
         if (loadingIndicator) {
@@ -245,7 +255,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         try {
-            const url = `feed.php?offset=${offset}&limit=${CONFIG.limit}&type=all&month=${currentDate.month}&day=${currentDate.day}`;
+            const url = `feed.php?offset=${offset}&limit=${CONFIG.limit}&type=${currentFilter}&month=${currentDate.month}&day=${currentDate.day}`;
             const res = await fetch(url);
             
             if (!res.ok) {
@@ -389,7 +399,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 50);
 
         // Ouvrir le détail au clic
-        card.addEventListener("click", () => {
+        card.addEventListener("click", (e) => {
+            // Animation confetti
+            const rect = card.getBoundingClientRect();
+            const x = rect.left + rect.width / 2;
+            const y = rect.top + rect.height / 2;
+            createConfetti(x, y);
+            
             // Marquer comme vu quand on clique dessus
             if (itemId) {
                 viewedItems.add(itemId);
@@ -402,6 +418,35 @@ document.addEventListener("DOMContentLoaded", () => {
         return card;
     }
 
+    /**
+     * Partage sur les réseaux sociaux
+     */
+    function shareOnSocial(platform, url, title, text) {
+        const encodedUrl = encodeURIComponent(url);
+        const encodedTitle = encodeURIComponent(title);
+        const encodedText = encodeURIComponent(text);
+        
+        let shareUrl = '';
+        switch(platform) {
+            case 'twitter':
+                shareUrl = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`;
+                break;
+            case 'facebook':
+                shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+                break;
+            case 'linkedin':
+                shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
+                break;
+            case 'whatsapp':
+                shareUrl = `https://wa.me/?text=${encodedTitle}%20${encodedUrl}`;
+                break;
+            default:
+                return;
+        }
+        
+        window.open(shareUrl, '_blank', 'width=600,height=400');
+    }
+    
     /**
      * Ouvre le panneau de détail
      */
@@ -417,6 +462,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const extractHtml = item.extract_html || "";
         const extractText = item.extract_short || "";
         const extract = extractHtml || escapeHtml(extractText);
+        const currentUrl = window.location.href;
+        const shareText = `${title}${year ? ` (${year})` : ''} - Découvrez l'histoire du jour sur WDHOTD`;
 
         // Image avec lazy loading
         const img = item.thumbnail
@@ -431,9 +478,30 @@ document.addEventListener("DOMContentLoaded", () => {
         // Lien Wikipedia
         const wikiLink = item.wikipedia_url
             ? `<a href="${item.wikipedia_url}" target="_blank" rel="noopener noreferrer" class="wiki-link">
-                View on Wikipedia →
+                Voir sur Wikipedia →
                </a>`
             : "";
+        
+        // Boutons de partage
+        const shareButtons = `
+            <div class="share-buttons">
+                <button class="share-btn" data-platform="twitter" aria-label="Partager sur Twitter" title="Twitter">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/></svg>
+                </button>
+                <button class="share-btn" data-platform="facebook" aria-label="Partager sur Facebook" title="Facebook">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>
+                </button>
+                <button class="share-btn" data-platform="linkedin" aria-label="Partager sur LinkedIn" title="LinkedIn">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
+                </button>
+                <button class="share-btn" data-platform="whatsapp" aria-label="Partager sur WhatsApp" title="WhatsApp">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                </button>
+                <button class="share-btn copy-link" aria-label="Copier le lien" title="Copier le lien">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+                </button>
+            </div>
+        `;
 
         // Construire le HTML
         detailContent.innerHTML = `
@@ -441,8 +509,28 @@ document.addEventListener("DOMContentLoaded", () => {
             <h2>${escapeHtml(title)}</h2>
             ${meta ? `<div class="meta">${meta}</div>` : ""}
             <div class="extract">${extract}</div>
+            ${shareButtons}
             ${wikiLink}
         `;
+        
+        // Ajouter les event listeners pour le partage
+        const shareBtns = detailContent.querySelectorAll('.share-btn');
+        shareBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const platform = btn.getAttribute('data-platform');
+                if (platform) {
+                    shareOnSocial(platform, currentUrl, title, shareText);
+                } else if (btn.classList.contains('copy-link')) {
+                    navigator.clipboard.writeText(currentUrl).then(() => {
+                        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+                        setTimeout(() => {
+                            btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>';
+                        }, 2000);
+                    });
+                }
+            });
+        });
 
         // Ajouter l'historique pour gérer le bouton retour
         history.pushState({ detail: true }, "");
@@ -563,18 +651,135 @@ document.addEventListener("DOMContentLoaded", () => {
             if (data.success && data.stats) {
                 const stats = data.stats;
                 
+                const statTotal = document.getElementById("statTotal");
                 const statEvents = document.getElementById("statEvents");
                 const statBirths = document.getElementById("statBirths");
                 const statDeaths = document.getElementById("statDeaths");
                 const statHolidays = document.getElementById("statHolidays");
                 
-                if (statEvents) statEvents.textContent = stats.events || 0;
-                if (statBirths) statBirths.textContent = stats.births || 0;
-                if (statDeaths) statDeaths.textContent = stats.deaths || 0;
-                if (statHolidays) statHolidays.textContent = stats.holidays || 0;
+                if (statTotal) {
+                    const oldVal = parseInt(statTotal.textContent) || 0;
+                    if (oldVal === 0 || oldVal !== stats.total) {
+                        animateValue(statTotal, oldVal, stats.total || 0, 500);
+                    }
+                }
+                if (statEvents) {
+                    const oldVal = parseInt(statEvents.textContent) || 0;
+                    if (oldVal !== stats.events) {
+                        animateValue(statEvents, oldVal, stats.events || 0, 500);
+                    }
+                }
+                if (statBirths) {
+                    const oldVal = parseInt(statBirths.textContent) || 0;
+                    if (oldVal !== stats.births) {
+                        animateValue(statBirths, oldVal, stats.births || 0, 500);
+                    }
+                }
+                if (statDeaths) {
+                    const oldVal = parseInt(statDeaths.textContent) || 0;
+                    if (oldVal !== stats.deaths) {
+                        animateValue(statDeaths, oldVal, stats.deaths || 0, 500);
+                    }
+                }
+                if (statHolidays) {
+                    const oldVal = parseInt(statHolidays.textContent) || 0;
+                    if (oldVal !== stats.holidays) {
+                        animateValue(statHolidays, oldVal, stats.holidays || 0, 500);
+                    }
+                }
             }
         } catch (error) {
             console.error("Error loading stats:", error);
+        }
+    }
+    
+    /**
+     * Gère les filtres par type
+     */
+    function initFilters() {
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const type = btn.getAttribute('data-type');
+                if (type === currentFilter) return;
+                
+                // Mettre à jour l'état actif
+                filterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // Changer le filtre
+                currentFilter = type;
+                
+                // Recharger le feed
+                loadFeed(true);
+            });
+        });
+    }
+    
+    /**
+     * Progress bar de scroll
+     */
+    function initScrollProgress() {
+        const progressBar = document.getElementById('scrollProgress');
+        if (!progressBar) return;
+        
+        window.addEventListener('scroll', () => {
+            const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrolled = (winScroll / height) * 100;
+            progressBar.style.width = scrolled + '%';
+        }, { passive: true });
+    }
+    
+    /**
+     * Animation de compteur
+     */
+    function animateValue(element, start, end, duration) {
+        if (start === end) return;
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            const value = Math.floor(progress * (end - start) + start);
+            element.textContent = value;
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            } else {
+                element.textContent = end;
+            }
+        };
+        window.requestAnimationFrame(step);
+    }
+    
+    /**
+     * Animation confetti au clic sur une carte
+     */
+    function createConfetti(x, y) {
+        const colors = ['#ff3b30', '#34c95e', '#007aff', '#ff9500', '#ff2d55', '#af52de'];
+        const confettiCount = 30;
+        
+        for (let i = 0; i < confettiCount; i++) {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti';
+            confetti.style.left = x + 'px';
+            confetti.style.top = y + 'px';
+            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+            
+            const angle = (Math.PI * 2 * i) / confettiCount;
+            const velocity = 50 + Math.random() * 50;
+            const vx = Math.cos(angle) * velocity;
+            const vy = Math.sin(angle) * velocity;
+            
+            document.body.appendChild(confetti);
+            
+            requestAnimationFrame(() => {
+                confetti.style.transition = 'all 0.8s cubic-bezier(0.5, 0, 0.5, 1)';
+                confetti.style.transform += ` translate(${vx}px, ${vy}px) rotate(${Math.random() * 720}deg)`;
+                confetti.style.opacity = '0';
+                
+                setTimeout(() => confetti.remove(), 800);
+            });
         }
     }
 
@@ -596,4 +801,6 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // Initialisation
     initialize();
+    initFilters();
+    initScrollProgress();
 });

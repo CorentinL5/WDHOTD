@@ -76,6 +76,13 @@ body {
     overflow: hidden;
 }
 
+.header-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3vw;
+}
+
 .tiktok-header h1 {
     font-size: 8vw;
     font-weight: 700;
@@ -136,6 +143,27 @@ body {
     transform: translateY(-2px);
 }
 
+/* Boutons de filtre */
+.filter-btn {
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font-family: inherit;
+}
+
+.filter-btn.active {
+    background: rgba(255, 59, 48, 0.2) !important;
+    border-color: rgba(255, 59, 48, 0.5) !important;
+}
+
+.filter-btn.active .stat-compact-value {
+    background: linear-gradient(135deg, var(--accent) 0%, #ff6b5a 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
 .stat-compact-value {
     font-size: 5.5vw;
     font-weight: 800;
@@ -156,6 +184,22 @@ body {
     line-height: 1;
     white-space: nowrap;
     font-weight: 600;
+}
+
+/* -----------------------------------------------------
+   PROGRESS BAR DE SCROLL
+----------------------------------------------------- */
+
+.scroll-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent) 0%, #ff6b5a 100%);
+    z-index: 9999;
+    transition: width 0.1s ease-out;
+    box-shadow: 0 0 10px rgba(255, 59, 48, 0.5);
 }
 
 /* -----------------------------------------------------
@@ -602,6 +646,84 @@ body {
 }
 
 /* -----------------------------------------------------
+   BOUTONS DE PARTAGE SOCIAL
+----------------------------------------------------- */
+
+.share-buttons {
+    display: flex;
+    gap: 1rem;
+    margin: 2rem 0;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.share-btn {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition);
+    padding: 0;
+}
+
+.share-btn svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.share-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-2px) scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.share-btn[data-platform="twitter"]:hover {
+    background: rgba(29, 161, 242, 0.2);
+    border-color: rgba(29, 161, 242, 0.5);
+    color: #1da1f2;
+}
+
+.share-btn[data-platform="facebook"]:hover {
+    background: rgba(24, 119, 242, 0.2);
+    border-color: rgba(24, 119, 242, 0.5);
+    color: #1877f2;
+}
+
+.share-btn[data-platform="linkedin"]:hover {
+    background: rgba(0, 119, 181, 0.2);
+    border-color: rgba(0, 119, 181, 0.5);
+    color: #0077b5;
+}
+
+.share-btn[data-platform="whatsapp"]:hover {
+    background: rgba(37, 211, 102, 0.2);
+    border-color: rgba(37, 211, 102, 0.5);
+    color: #25d366;
+}
+
+/* -----------------------------------------------------
+   ANIMATION CONFETTI
+----------------------------------------------------- */
+
+.confetti {
+    position: fixed;
+    width: 12px;
+    height: 12px;
+    background: var(--accent);
+    z-index: 10000;
+    pointer-events: none;
+    border-radius: 3px;
+    box-shadow: 0 0 6px rgba(255, 59, 48, 0.8);
+}
+
+/* -----------------------------------------------------
    SCROLL TO TOP BUTTON
 ----------------------------------------------------- */
 
@@ -704,6 +826,12 @@ body {
         margin: 0 auto;
     }
 
+    .header-left {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+
     .tiktok-header h1 {
         font-size: 1.75rem;
         margin: 0;
@@ -711,12 +839,14 @@ body {
         flex-shrink: 0;
         font-weight: 800;
         letter-spacing: 0.05em;
+        width: auto;
     }
 
     .header-subtitle {
         font-size: 0.75rem;
         text-align: left;
         opacity: 0.8;
+        width: auto;
     }
 
     .stats-compact {
@@ -737,6 +867,24 @@ body {
 
     .stat-compact-label {
         font-size: 0.65rem;
+    }
+    
+    .filter-btn {
+        padding: 0.5rem 1rem;
+    }
+    
+    .share-buttons {
+        margin: 1.5rem 0;
+    }
+    
+    .share-btn {
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+    
+    .share-btn svg {
+        width: 1.125rem;
+        height: 1.125rem;
     }
 
     /* Main avec marge réduite */
