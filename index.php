@@ -3,7 +3,7 @@
 <?php
 $currentDate = date('d/m/Y');
 $siteUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]";
-$siteName = "WDHOTD - What Happened On This Day";
+$siteName = "WDHOTD - What DidHappened On This Day";
 $description = "Découvrez les événements historiques, naissances, décès et fêtes qui se sont produits le $currentDate dans l'histoire. Explorez l'histoire jour par jour !";
 ?>
 <!DOCTYPE html>
@@ -80,7 +80,7 @@ $description = "Découvrez les événements historiques, naissances, décès et 
             <div class="header-content">
                 <div class="header-left">
                     <h1>WDHOTD</h1>
-                    <div class="header-subtitle">What Happened On This Day</div>
+                    <div class="header-subtitle">What Did Happened On This Day</div>
                     <div class="header-date"><?= htmlspecialchars($currentDate) ?></div>
                 </div>
                 
