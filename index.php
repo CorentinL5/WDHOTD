@@ -53,6 +53,8 @@
             </div>
         </main>
 
+        <button id="scrollToTop" class="scroll-to-top" aria-label="Retour en haut">↑</button>
+
         <footer class="footer">
             <div class="inner">
 

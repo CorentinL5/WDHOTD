@@ -1,13 +1,18 @@
 /**
  * WDHOTD Feed Manager - Mode TikTok
  * Scroll vertical infini avec cartes pleine page
+ * Avec sauvegarde de position et gestion des éléments vus
  */
 
 document.addEventListener("DOMContentLoaded", () => {
     // Configuration
     const CONFIG = {
         limit: 10, // Charger 10 items à la fois
-        debounceDelay: 300
+        debounceDelay: 300,
+        scrollSaveInterval: 1000, // Sauvegarder la position toutes les secondes
+        viewedItemsKey: 'wdhotd_viewed_items',
+        scrollPositionKey: 'wdhotd_scroll_position',
+        currentDateKey: 'wdhotd_current_date'
     };
 
     // État de l'application
@@ -18,6 +23,38 @@ document.addEventListener("DOMContentLoaded", () => {
         month: new Date().getMonth() + 1,
         day: new Date().getDate()
     };
+    
+    // Récupérer les éléments déjà vus depuis localStorage
+    let viewedItems = new Set();
+    try {
+        const stored = localStorage.getItem(CONFIG.viewedItemsKey);
+        if (stored) {
+            viewedItems = new Set(JSON.parse(stored));
+        }
+    } catch (e) {
+        console.error("Error loading viewed items:", e);
+    }
+    
+    // Restaurer la date si elle est différente
+    try {
+        const storedDate = localStorage.getItem(CONFIG.currentDateKey);
+        if (storedDate) {
+            const parsed = JSON.parse(storedDate);
+            const today = { month: new Date().getMonth() + 1, day: new Date().getDate() };
+            if (parsed.month === today.month && parsed.day === today.day) {
+                // Même date, on peut restaurer la position
+            } else {
+                // Date différente, réinitialiser
+                viewedItems.clear();
+                localStorage.removeItem(CONFIG.scrollPositionKey);
+            }
+        }
+    } catch (e) {
+        console.error("Error checking date:", e);
+    }
+    
+    // Sauvegarder la date actuelle
+    localStorage.setItem(CONFIG.currentDateKey, JSON.stringify(currentDate));
 
     // Éléments DOM
     const feedEl = document.getElementById("feed");
@@ -27,6 +64,173 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!feedEl) {
         console.error("Feed element not found");
         return;
+    }
+    
+    // Indicateur de restauration de position
+    let isRestoringScroll = false;
+    
+    /**
+     * Sauvegarde la position de scroll dans localStorage
+     */
+    function saveScrollPosition() {
+        if (isRestoringScroll) return;
+        try {
+            const scrollY = window.scrollY || window.pageYOffset;
+            localStorage.setItem(CONFIG.scrollPositionKey, scrollY.toString());
+        } catch (e) {
+            console.error("Error saving scroll position:", e);
+        }
+    }
+    
+    /**
+     * Restaure la position de scroll depuis localStorage
+     */
+    async function restoreScrollPosition() {
+        try {
+            const savedPosition = localStorage.getItem(CONFIG.scrollPositionKey);
+            if (savedPosition === null) return;
+            
+            const position = parseInt(savedPosition, 10);
+            if (isNaN(position) || position <= 0) return;
+            
+            isRestoringScroll = true;
+            
+            // Charger plus d'éléments si nécessaire pour atteindre la position sauvegardée
+            let attempts = 0;
+            const maxAttempts = 10;
+            
+            const checkAndScroll = () => {
+                const currentHeight = document.documentElement.scrollHeight;
+                const headerHeight = document.querySelector('.tiktok-header')?.offsetHeight || 0;
+                
+                // Si on a assez de contenu pour atteindre la position, scroller
+                if (currentHeight > position + window.innerHeight || attempts >= maxAttempts) {
+                    window.scrollTo({
+                        top: position,
+                        behavior: 'auto'
+                    });
+                    
+                    // Marquer les éléments vus qui sont au-dessus de la position
+                    setTimeout(() => {
+                        markViewedItemsAbove(position);
+                        isRestoringScroll = false;
+                    }, 100);
+                } else if (hasMore && !isLoading && attempts < maxAttempts) {
+                    // Charger plus et réessayer
+                    attempts++;
+                    loadFeed().then(() => {
+                        setTimeout(checkAndScroll, 200);
+                    });
+                } else {
+                    // Pas assez de contenu, scroller au maximum possible
+                    window.scrollTo({
+                        top: currentHeight - window.innerHeight,
+                        behavior: 'auto'
+                    });
+                    isRestoringScroll = false;
+                }
+            };
+            
+            // Démarrer la vérification après un court délai
+            setTimeout(checkAndScroll, 300);
+        } catch (e) {
+            console.error("Error restoring scroll position:", e);
+            isRestoringScroll = false;
+        }
+    }
+    
+    /**
+     * Marque les éléments qui sont visibles au-dessus d'une certaine position
+     */
+    function markViewedItemsAbove(maxY) {
+        const cards = feedEl.querySelectorAll(".tiktok-card:not(.viewed)");
+        cards.forEach(card => {
+            const rect = card.getBoundingClientRect();
+            const cardTop = rect.top + window.scrollY;
+            if (cardTop < maxY) {
+                const cardId = card.getAttribute("data-id");
+                if (cardId) {
+                    viewedItems.add(cardId);
+                    card.classList.add("viewed");
+                }
+            }
+        });
+        if (cards.length > 0) {
+            saveViewedItems();
+        }
+    }
+    
+    /**
+     * Sauvegarde la liste des éléments vus
+     */
+    function saveViewedItems() {
+        try {
+            localStorage.setItem(CONFIG.viewedItemsKey, JSON.stringify(Array.from(viewedItems)));
+        } catch (e) {
+            console.error("Error saving viewed items:", e);
+        }
+    }
+    
+    // Sauvegarder la position de scroll périodiquement
+    let scrollSaveTimer;
+    window.addEventListener("scroll", () => {
+        clearTimeout(scrollSaveTimer);
+        scrollSaveTimer = setTimeout(saveScrollPosition, CONFIG.scrollSaveInterval);
+        
+        // Marquer les éléments visibles comme vus
+        markVisibleItemsAsViewed();
+    }, { passive: true });
+    
+    // Sauvegarder aussi avant de quitter la page
+    window.addEventListener("beforeunload", saveScrollPosition);
+    
+    // Bouton scroll to top
+    const scrollToTopBtn = document.getElementById("scrollToTop");
+    if (scrollToTopBtn) {
+        // Afficher/masquer le bouton selon le scroll
+        window.addEventListener("scroll", () => {
+            if (window.scrollY > 500) {
+                scrollToTopBtn.classList.add("visible");
+            } else {
+                scrollToTopBtn.classList.remove("visible");
+            }
+        }, { passive: true });
+        
+        // Scroll vers le haut au clic
+        scrollToTopBtn.addEventListener("click", () => {
+            window.scrollTo({
+                top: 0,
+                behavior: "smooth"
+            });
+        });
+    }
+    
+    /**
+     * Marque les éléments visibles à l'écran comme vus
+     */
+    function markVisibleItemsAsViewed() {
+        const cards = feedEl.querySelectorAll(".tiktok-card:not(.viewed)");
+        const viewportTop = window.scrollY;
+        const viewportBottom = viewportTop + window.innerHeight;
+        
+        cards.forEach(card => {
+            const rect = card.getBoundingClientRect();
+            const cardTop = rect.top + window.scrollY;
+            const cardBottom = cardTop + rect.height;
+            
+            // Si la carte est au moins partiellement visible
+            if (cardBottom > viewportTop && cardTop < viewportBottom) {
+                const cardId = card.getAttribute("data-id");
+                if (cardId) {
+                    viewedItems.add(cardId);
+                    card.classList.add("viewed");
+                }
+            }
+        });
+        
+        if (cards.length > 0) {
+            saveViewedItems();
+        }
     }
 
     /**
@@ -147,6 +351,12 @@ document.addEventListener("DOMContentLoaded", () => {
             card.classList.add("loaded");
         }
 
+        // Marquer comme vu si déjà dans la liste
+        const itemId = (item.id || "").toString();
+        if (itemId && viewedItems.has(itemId)) {
+            card.classList.add("viewed");
+        }
+        
         // Animation d'entrée
         setTimeout(() => {
             card.style.opacity = "1";
@@ -155,6 +365,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Ouvrir le détail au clic
         card.addEventListener("click", () => {
+            // Marquer comme vu quand on clique dessus
+            if (itemId) {
+                viewedItems.add(itemId);
+                card.classList.add("viewed");
+                saveViewedItems();
+            }
             openDetail(item);
         });
 
@@ -275,6 +491,9 @@ document.addEventListener("DOMContentLoaded", () => {
         return text.substring(0, maxLength) + "...";
     }
 
+    // Observer global pour le lazy loading
+    let lastCardObserver = null;
+    
     /**
      * Observe la dernière carte pour charger plus
      */
@@ -284,7 +503,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const lastCard = cards[cards.length - 1];
         
-        const observer = new IntersectionObserver((entries) => {
+        // Arrêter l'observation précédente si elle existe
+        if (lastCardObserver) {
+            lastCardObserver.disconnect();
+        }
+        
+        lastCardObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting && hasMore && !isLoading) {
                     loadFeed();
@@ -294,7 +518,7 @@ document.addEventListener("DOMContentLoaded", () => {
             rootMargin: "200px" // Charger 200px avant d'arriver à la fin
         });
 
-        observer.observe(lastCard);
+        lastCardObserver.observe(lastCard);
     }
 
     /**
@@ -329,7 +553,22 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    /**
+     * Initialise le chargement avec restauration de position
+     */
+    async function initialize() {
+        await loadStats();
+        
+        // Charger le premier batch
+        await loadFeed();
+        
+        // Restaurer la position (qui chargera plus si nécessaire)
+        await restoreScrollPosition();
+        
+        // Observer pour charger plus
+        observeLastCard();
+    }
+    
     // Initialisation
-    loadStats();
-    loadFeed();
+    initialize();
 });
