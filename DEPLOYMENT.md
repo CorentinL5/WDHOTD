@@ -25,6 +25,14 @@ php configure.php --support-url=https://revolut.me/corentinl5 --source-url=https
 
 ## Build the public release
 
+First run the read-only preflight. It checks the configured domain, every calendar archive and today's content without contacting MySQL or the host. Missing upcoming dates produce warnings. Missing or inconsistent published archives block production packaging. This does not verify DNS, certificates, server capacity or the daily upload job.
+
+```sh
+php scripts/preflight.php
+```
+
+Then build:
+
 ```sh
 php scripts/package.php --production
 ```

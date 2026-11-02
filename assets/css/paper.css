@@ -1,17 +1,15 @@
 /* Matte paper: no background images, gradients, dotted grain or fake folds. */
 :root {
-    --paper: #eae7dc;
+    --paper: #eeece5;
     --ink: #272c24;
     --muted: #66675e;
     --line: #c3c0b6;
     --accent: #a6472e;
     --green: #344735;
-    --paper-grain: none;
 }
 body {
     background-color: var(--paper);
     background-image: none;
-    box-shadow: inset 45px 0 100px -65px #6d675b18, inset -45px 0 100px -65px #6d675b12;
 }
 body::before, body::after { content: none; }
 .masthead { border-bottom: 3px double #6c6c54; }
@@ -27,7 +25,6 @@ body::before, body::after { content: none; }
 .story-grid > .story-card { border-top: 1px solid #b9b8ab; padding-top: 17px; }
 .section-label { color: #73766b; }
 .section-label:after { background: #c1beb3; }
-.image-placeholder { }
 .source-note { border-block-color: #bab9ac; }
 .project-support { background-color: #eeece4; border-top: 3px double #9c9e8c; }
 .footer { border-top: 1px solid #bab9ac; margin-top: 30px; }
@@ -48,3 +45,118 @@ dialog { background-color: #efede6; }
 @media(max-width: 600px) { .journal-rule { gap: 12px; font-size: 7px; letter-spacing: 1.1px; } .journal-rule span:last-child { max-width: 130px; text-align: right; } .story-grid > .story-card { padding-top: 18px; } }
 @media print { body, .hero-story, .chrono-card { background: white; } .save-button, .collection-tools, .view-tabs, .collection-notice { display: none; } }
 @media print { body::before, body::after { display: none; } }
+
+/* Compact editorial hierarchy and readable controls at every screen size. */
+.wrap { max-width: 1400px; padding-inline: clamp(22px, 4vw, 64px); }
+.masthead { min-height: 96px; border-bottom: 1px solid var(--ink); gap: 30px; }
+.brand { font-size: 38px; letter-spacing: -1.8px; }
+.brand-tagline { font-size: 10px; }
+.masthead-note { font-size: 12px; padding-left: 28px; }
+.project-nav { font-size: 12px; }
+.date-toggle { min-height: 44px; border-color: #bcbeb3; border-radius: 4px; font-size: 13px; }
+.date-toggle:hover { background: #e3e2d9; }
+.intro { padding: 30px 0 32px; }
+.eyebrow { font-size: 10px; letter-spacing: 1.7px; }
+.intro-row { align-items: center; gap: 40px; }
+.intro-row > div:first-child { min-width: 0; }
+.intro-row h1 { font-size: clamp(44px, 5.3vw, 74px); line-height: 1.08; letter-spacing: -2px; margin: 14px 0 0; }
+.intro-description { font-size: 14px; color: var(--muted); line-height: 1.7; margin: 14px 0 0; max-width: 570px; }
+.intro-aside { min-width: 200px; max-width: 245px; border-left: 1px solid var(--line); padding: 0 0 0 30px; }
+.edition-label { display: block; font-size: 9px; letter-spacing: 1.8px; margin-bottom: 6px; color: var(--muted); }
+.edition { display: block; font-family: var(--serif); text-transform: none; font-weight: 400; font-size: 29px; letter-spacing: -.4px; line-height: 1.2; }
+.intro-aside p { font-size: 12px; line-height: 1.6; margin: 9px 0 0; }
+.explore-bar { border-block: 1px solid var(--ink); margin-top: 0; gap: 20px; }
+.view-tabs { gap: 28px; }
+.view-tab { font-size: 13px; min-height: 52px; padding: 16px 0; }
+.view-tab:hover { color: var(--ink); }
+.story-count { font-size: 11px; }
+.surprise-button { min-height: 44px; font-size: 12px; }
+.category-bar { padding: 17px 0 23px; gap: 20px; }
+.filter { min-height: 38px; padding: 8px 14px; font-size: 12px; }
+.filter:hover { border-color: #bcbeb3; }
+.search { min-height: 40px; width: 240px; }
+.search input { font-size: 13px; width: 100%; min-width: 0; }
+.section-label { font-size: 10px; letter-spacing: 1.4px; margin-bottom: 17px; color: var(--muted); }
+.hero-story { grid-template-columns: 1.05fr 1fr; min-height: 380px; border: 1px solid var(--line); background: #f6f4ee; margin-bottom: 38px; }
+.hero-visual { min-height: 380px; border-right: 1px solid var(--line); }
+.hero-visual, .card-visual, .hero-visual img, .card-visual img { background-color: #e3e2d9; }
+.hero-copy { padding: clamp(24px, 3vw, 42px); }
+.hero-copy .story-number { font-size: 10px; color: var(--muted); letter-spacing: 1.3px; margin-bottom: 22px; }
+.story-meta { font-size: 11px; letter-spacing: 1px; flex-wrap: wrap; row-gap: 4px; }
+.hero-copy h2 { font-size: clamp(32px, 3.2vw, 46px); line-height: 1.08; margin: 14px 0 18px; }
+.event-text, .hero-copy .event-text, .story-card .event-text, .chrono-copy .event-text { font-size: 14px; line-height: 1.8; color: #4f574e; }
+.hero-copy .event-text { margin-bottom: 28px; }
+.read-link { font-size: 12px; min-height: 38px; gap: 22px; }
+.save-button { font-size: 12px; padding: 8px 13px; min-height: 38px; border-color: #bfc2b7; border-radius: 4px; }
+.save-button:hover { background: #e7e9df; }
+.story-grid { gap: 32px; }
+.story-card h3 { font-size: 31px; line-height: 1.15; margin-top: 12px; }
+.card-visual { height: 220px; border: 1px solid var(--line); }
+.source-note p { font-size: 12px; }
+.about-project { border-top: 1px solid var(--ink); margin-top: 38px; padding-top: 36px; gap: 60px; }
+.about-project p { font-size: 14px; line-height: 1.8; }
+.about-project h2 { font-size: 48px; }
+.project-support { background: #f6f4ee; border-color: var(--line); }
+.project-support h3 { font-size: 30px; }
+.footer p, .footer > a:last-child { font-size: 11px; }
+.chrono-intro { background: #2c4030; padding: 34px 40px; }
+.chrono-nav { box-shadow: 0 8px 16px #eeece5ef; }
+.chrono-card { background: #f6f4ee; }
+.collection-tools p { font-size: 13px; }
+dialog, .dialog-toolbar { background: #f6f4ee; }
+@media (max-width: 1100px) {
+    .explore-bar { flex-wrap: wrap; gap: 0 20px; }
+    .explore-actions { margin-left: auto; }
+    .intro-aside { min-width: 180px; padding-left: 22px; }
+}
+@media (max-width: 800px) {
+    .intro-row h1 { font-size: 48px; }
+    .intro-aside { min-width: 155px; }
+    .intro-aside p { display: none; }
+    .story-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .about-project { gap: 25px; }
+}
+@media (max-width: 700px) {
+    .masthead { min-height: 84px; gap: 14px; }
+    .masthead .brand { font-size: 32px; }
+    .brand-tagline { font-size: 8px; }
+    .date-toggle { padding: 9px 12px; font-size: 12px; }
+    .intro { padding: 25px 0; }
+    .intro-row { flex-direction: column; gap: 18px; align-items: flex-start; }
+    .intro-row h1 { font-size: clamp(39px, 7.5vw, 52px); letter-spacing: -1.2px; }
+    .intro-description { font-size: 13px; margin-top: 10px; }
+    .intro-aside { display: flex; align-items: baseline; gap: 12px; border: 0; padding: 0; max-width: none; }
+    .edition-label { margin: 0; font-size: 8px; }
+    .edition { font-size: 22px; min-width: 0; }
+    .view-tabs { width: 100%; gap: 20px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+    .view-tabs::-webkit-scrollbar, .filters::-webkit-scrollbar { display: none; }
+    .view-tab { font-size: 12px; white-space: nowrap; flex-shrink: 0; min-height: 48px; }
+    .explore-actions { width: 100%; justify-content: space-between; padding: 3px 0; border-top: 1px solid var(--line); }
+    .story-count { display: block; }
+    .surprise-button { min-height: 36px; padding-left: 0; border: 0; }
+    .category-bar { flex-direction: column; align-items: stretch; gap: 12px; padding: 14px 0 20px; }
+    .filters { flex-wrap: nowrap; overflow-x: auto; gap: 4px; padding-bottom: 3px; scrollbar-width: none; }
+    .filter { white-space: nowrap; flex-shrink: 0; padding: 8px 12px; }
+    .search { width: 100%; }
+    .hero-story { grid-template-columns: 1fr; min-height: 0; }
+    .hero-visual { min-height: 270px; border-right: 0; border-bottom: 1px solid var(--line); }
+    .hero-copy { padding: 25px; }
+    .hero-copy h2 { font-size: 36px; }
+    .hero-copy .story-number { margin-bottom: 18px; }
+    .about-project { grid-template-columns: 1fr; }
+    .about-project h2 { font-size: 42px; }
+    .chrono-intro { padding: 26px; }
+}
+@media (max-width: 600px) {
+    .story-grid { grid-template-columns: 1fr; gap: 28px; }
+    .story-grid > .story-card { display: flex; padding-top: 18px; }
+    .card-visual { height: 220px; }
+    .story-card > .story-actions { flex-wrap: nowrap; }
+    .story-card h3 { font-size: 30px; }
+    .story-card .event-text { display: block; }
+    .eyebrow { font-size: 8px; letter-spacing: 1.3px; }
+    .footer { gap: 18px; }
+}
+@media print {
+    body, .hero-story, .chrono-card { background: white; }
+}

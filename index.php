@@ -36,7 +36,7 @@ $initialArchive = publicData(sprintf('%02d-%02d.json', $pageMonth, $pageDay));
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#f5f2eb">
+    <meta name="theme-color" content="#eeece5">
     <meta name="description" content="Explore <?= htmlspecialchars($pageDate, ENT_QUOTES, 'UTF-8') ?> through history: events, people and stories, with an interactive timeline and your own saved collection.">
     <meta name="robots" content="<?= $siteURL && !$savedView ? 'index,follow' : 'noindex,nofollow' ?>">
     <?php if ($canonical): ?><link rel="canonical" href="<?= htmlspecialchars($canonical, ENT_QUOTES, 'UTF-8') ?>"><meta property="og:url" content="<?= htmlspecialchars($canonical, ENT_QUOTES, 'UTF-8') ?>"><?php endif; ?>
@@ -56,27 +56,26 @@ $initialArchive = publicData(sprintf('%02d-%02d.json', $pageMonth, $pageDay));
     <a class="skip-link" href="#stories">Skip to stories</a>
     <header class="masthead wrap">
         <div class="brand-lockup"><a class="brand" href="./" aria-label="WDHOTD, home">WDH<span>OTD</span></a><span class="brand-tagline">What Did Happened On This Day</span></div>
-        <span class="masthead-note">A daily dose of perspective<br>A free history project</span>
+        <span class="masthead-note">The daily history journal<br>Independent. Free to explore.</span>
         <a class="project-nav" href="#about">Free & independent ↗</a>
-        <button class="date-toggle" id="dateToggle" aria-expanded="false" aria-controls="datePicker"><span class="date-dot"></span><span id="headerDate"><?= $dateLabel ?></span><span aria-hidden="true"> ↗</span></button>
+        <button class="date-toggle" id="dateToggle" aria-expanded="false" aria-controls="datePicker" aria-label="Choose a date"><span id="headerDate"><?= $pageDate ?></span><span aria-hidden="true"> ↓</span></button>
     </header>
     <main class="wrap">
         <section class="intro" aria-labelledby="pageTitle">
-            <div class="eyebrow"><span class="short-rule"></span> YOUR DAILY WINDOW INTO THE PAST</div>
-            <div class="intro-row"><h1 id="pageTitle">One day.<br><em>So many stories.</em></h1><div class="intro-aside"><span class="edition" id="editionDate"><?= $dateLabel ?></span><p>Small moments. World-changing events. <br>Somewhere between then and now, <br>there’s a story worth knowing.</p></div></div>
-            <div class="journal-rule"><span>THE DAILY HISTORY JOURNAL</span><span>A LITTLE PERSPECTIVE, EVERY DAY.</span></div>
+            <div class="eyebrow"><span class="short-rule"></span> A DATE. A DIFFERENT PERSPECTIVE.</div>
+            <div class="intro-row"><div><h1 id="pageTitle">History, <em>on this day.</em></h1><p class="intro-description">Discover the events, lives and unexpected connections behind a single date.</p></div><div class="intro-aside"><span class="edition-label">THE EDITION</span><span class="edition" id="editionDate"><?= $pageDate ?></span><p>A new way into the past.<br>Every day, free for everyone.</p></div></div>
         </section>
         <form class="date-picker" id="datePicker" hidden>
-            <label>Day <input id="dateDay" type="number" min="1" max="31" required value="<?= $today->format('j') ?>"></label>
-            <label>Month <select id="dateMonth"><?php foreach ($months as $number => $name): ?><option value="<?= $number ?>" <?= $number === (int)$today->format('n') ? 'selected' : '' ?>><?= $name ?></option><?php endforeach; ?></select></label>
+            <label>Day <input id="dateDay" type="number" min="1" max="31" required value="<?= $pageDay ?>"></label>
+            <label>Month <select id="dateMonth"><?php foreach ($months as $number => $name): ?><option value="<?= $number ?>" <?= $number === $pageMonth ? 'selected' : '' ?>><?= $name ?></option><?php endforeach; ?></select></label>
             <button class="solid-button" type="submit">Explore this date →</button>
             <button class="text-button" id="todayButton" type="button">Back to today</button>
         </form>
         <div class="explore-bar">
-            <nav class="view-tabs" aria-label="Explore history"><button class="view-tab active" data-view="edition" aria-pressed="true">The daily edition</button><button class="view-tab" data-view="discovery" aria-pressed="false">Discover a story</button><button class="view-tab" data-view="timeline" aria-pressed="false">The timeline</button><button class="view-tab" data-view="saved" aria-pressed="false">Saved <span id="savedCount">0</span></button></nav>
+            <nav class="view-tabs" aria-label="Explore history"><button class="view-tab active" data-view="edition" aria-pressed="true">Daily edition</button><button class="view-tab" data-view="discovery" aria-pressed="false">Discover</button><button class="view-tab" data-view="timeline" aria-pressed="false">Timeline</button><button class="view-tab" data-view="saved" aria-pressed="false">Saved <span id="savedCount">0</span></button></nav>
             <div class="explore-actions"><span class="story-count" id="storyCount">Opening the archives…</span><button class="surprise-button" id="surpriseButton" type="button">Surprise me ↝</button></div>
         </div>
-        <div class="category-bar"><div class="filters" role="group" aria-label="Story category"><button class="filter active" data-type="events" aria-pressed="true">Events</button><button class="filter" data-type="births" aria-pressed="false">Births</button><button class="filter" data-type="deaths" aria-pressed="false">In memoriam</button><button class="filter" data-type="holidays" aria-pressed="false">Traditions</button><button class="filter" data-type="all" aria-pressed="false">Everything</button></div><label class="search"><span aria-hidden="true">⌕</span><input type="search" id="search" aria-label="Search stories" placeholder="A name, a year…"></label></div>
+        <div class="category-bar"><div class="filters" role="group" aria-label="Story category"><button class="filter active" data-type="events" aria-pressed="true">Events</button><button class="filter" data-type="births" aria-pressed="false">Births</button><button class="filter" data-type="deaths" aria-pressed="false">Deaths</button><button class="filter" data-type="holidays" aria-pressed="false">Traditions</button><button class="filter" data-type="all" aria-pressed="false">All</button></div><label class="search"><span aria-hidden="true">⌕</span><input type="search" id="search" aria-label="Search stories" placeholder="A name, a year…"></label></div>
         <section class="collection-tools" id="collectionTools" hidden aria-label="Your collection"><div><strong>Your own little archive.</strong><p>Saved in this browser. Export a backup to recover it or move to another device. Importing merges your stories.</p></div><div class="collection-buttons"><button id="exportSaved" class="outline-button">Export backup ↓</button><label class="outline-button import-label" for="importSaved">Import backup ↑</label><input type="file" id="importSaved" accept=".json,application/json"><button id="clearSaved" class="text-button">Clear collection</button></div></section>
         <p id="status" class="status" role="status" aria-live="polite">Gathering the stories behind this date…</p>
         <section id="stories" tabindex="-1" aria-label="Stories of the day" aria-busy="true"></section>

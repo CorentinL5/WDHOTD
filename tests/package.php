@@ -1,6 +1,20 @@
 <?php
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 require_once dirname(__DIR__) . '/web.php';
+require_once dirname(__DIR__) . '/scripts/release_checks.php';
+$releaseDate = new DateTimeImmutable('2026-12-31', new DateTimeZone('Europe/Brussels'));
+$releaseCalendar = [['month' => 12, 'day' => 31], ['month' => 1, 'day' => 1]];
+$releaseArchives = [
+    '12-31.json' => ['date' => $releaseCalendar[0], 'data' => [['id' => 1]], 'stats' => [], 'yearRange' => []],
+    '01-01.json' => ['date' => $releaseCalendar[1], 'data' => [['id' => 2]], 'stats' => [], 'yearRange' => []],
+];
+$releaseReader = static fn($name) => $releaseArchives[$name] ?? null;
+$ready = releaseChecks('https://history.org', $releaseCalendar, $releaseReader, $releaseDate);
+if (!$ready['ready'] || count($ready['warnings']) !== 5) throw new RuntimeException('Valid anniversary archives must work across New Year.');
+if (releaseChecks(null, $releaseCalendar, $releaseReader, $releaseDate)['ready']) throw new RuntimeException('A public release must have a configured domain.');
+if (releaseChecks('https://history.org', [$releaseCalendar[1]], $releaseReader, $releaseDate)['ready']) throw new RuntimeException('A public release must have stories for today.');
+if (releaseChecks('https://history.org', $releaseCalendar, static fn($name) => $releaseArchives['01-01.json'], $releaseDate)['ready']) throw new RuntimeException('Mismatched archive dates must block publication.');
+echo "PASS: release readiness blocks missing domains, missing daily content and mismatched archives.\n";
 foreach (['https://localhost', 'https://wdhotd.test', 'https://127.0.0.1', 'https://192.168.1.1', 'http://history.org', 'https://user:pass@history.org', 'https://history.org/?bad=1'] as $url) {
     if (publicSiteURL($url) !== null) throw new RuntimeException('A nonpublic or invalid canonical URL was accepted.');
 }
