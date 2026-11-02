@@ -6,6 +6,8 @@ You may inspect the code, test changes locally, and propose improvements through
 
 [Develop with us](DEV_WITH_US.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Community guidelines](CODE_OF_CONDUCT.md)
 
+[Deployment and recovery guide](DEPLOYMENT.md)
+
 ## Support the original project
 
 If WDHOTD makes your day a little more interesting, you can [support the project through Revolut](https://revolut.me/corentinl5). Support is voluntary; every story stays free. Contributions to the code belong in [CorentinL5/WDHOTD](https://github.com/CorentinL5/WDHOTD).
@@ -17,6 +19,7 @@ If WDHOTD makes your day a little more interesting, you can [support the project
 - An illustrated timeline, era navigation, a proportional year overview, year gaps and oldest/newest-first controls. Reading cards are not to scale.
 - Date exploration, events/births/deaths/traditions, search and a **Surprise me** button that picks a published date.
 - English interface, responsive layouts, keyboard navigation and framed high-resolution images.
+- Saved stories with browser-local storage and validated JSON export/import for recovery across browsers or devices. There is no automatic cloud synchronization.
 
 No accounts, subscriptions, Premium tiers or email collection. Every story stays free. Support is optional through the configured external payment page. WDHOTD processes no payments and stores no payment details.
 
@@ -98,6 +101,8 @@ Images and their dimensions are stored in source metadata (`_image`). Up to 960-
 php tests/images.php
 php tests/smoke.php http://127.0.0.1:8000
 node --check assets/js/feed.js
+node --test tests/collection.test.cjs
+php tests/package.php
 ```
 
 The smoke test checks actual cached responses, ETags, limits, navigation data and rejection of public write routes. It collects no email, sends no payment and performs no imports.

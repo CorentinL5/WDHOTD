@@ -38,6 +38,8 @@ In another terminal:
 php tests/images.php
 php tests/smoke.php http://127.0.0.1:8000
 node --check assets/js/feed.js
+node --test tests/collection.test.cjs
+php tests/package.php
 ```
 
 Check PHP syntax for changed files with `php -l path/to/file.php`. The CI workflow runs syntax checks, the image rules and actual HTTP/cache tests on PHP 8.1 and 8.4.

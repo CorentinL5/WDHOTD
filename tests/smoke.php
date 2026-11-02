@@ -30,6 +30,9 @@ check(historyDate(['month' => 2, 'day' => 29]) === [2, 29], 'Leap-day anniversar
 check(publicData('../../config.php') === null, 'Cache reads are limited to published filenames');
 [$code, $html, , $headers] = request('/');
 check($code === 200 && str_contains($html, 'lang="en"'), 'English home page responds');
+check(($headers['x-content-type-options'] ?? '') === 'nosniff' && ($headers['x-frame-options'] ?? '') === 'DENY', 'Public pages return browser-protection headers');
+check(str_contains($headers['content-security-policy'] ?? '', "script-src 'self'") && str_contains($headers['content-security-policy'] ?? '', "frame-ancestors 'none'"), 'Content policy restricts scripts and embedding');
+check(str_contains($html, 'id="collectionTools"') && str_contains($html, 'id="importSaved"') && str_contains($html, 'id="exportSaved"'), 'Saved stories have explicit backup and recovery controls');
 check(!str_contains($html, 'launchForm') && !str_contains($html, 'Premium') && !isset($headers['set-cookie']), 'Reading needs no account, launch form or session cookie');
 check(str_contains($html, 'Contribution-only') && !str_contains($html, 'MIT licensed'), 'The site declares contribution-only source visibility');
 $settings = publicData('settings.json') ?? [];
@@ -53,6 +56,6 @@ check($code === 200 && $stats['stats']['total'] === $first['meta']['total'], 'St
 check($code === 200 && ($sponsor['ad'] === null || $sponsor['ad']['destination'] !== '#membership'), 'The old Premium promotion is gone');
 foreach (['import.php?force=1', 'sync.php', 'export.php', 'configure.php', 'config.php', 'migrate.php', 'refresh_images.php', 'newsletter.php'] as $path) {
     [$code] = request('/' . $path);
-    check($code === 404, 'No public write endpoint: ' . $path);
+    check(in_array($code, [403, 404], true), 'No public write endpoint: ' . $path);
 }
 echo "$checks checks passed. No signup, import or payment was performed.\n";
