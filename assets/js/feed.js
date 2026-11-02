@@ -11,6 +11,15 @@
     let detailTrigger = null;
     let timelineObserver = null;
     let newestFirst = false;
+    const backToTop = $('#backToTop');
+    const updateBackToTop = () => { backToTop.hidden = window.scrollY < 500; };
+    window.addEventListener('scroll', updateBackToTop, { passive: true });
+    updateBackToTop();
+    backToTop.addEventListener('click', event => {
+        event.preventDefault();
+        $('#dateToggle').focus({ preventScroll: true });
+        window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+    });
     let collection;
     try { collection = WDHOTDCollections.create(localStorage); }
     catch { collection = WDHOTDCollections.create({ getItem() { throw new Error(); }, setItem() { throw new Error(); } }); }

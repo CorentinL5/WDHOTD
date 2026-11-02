@@ -52,7 +52,7 @@ $initialArchive = publicData(sprintf('%02d-%02d.json', $pageMonth, $pageDay));
     <script src="<?= assetURL('assets/js/collection.js') ?>" defer></script>
     <script src="<?= assetURL('assets/js/feed.js') ?>" defer></script>
 </head>
-<body data-month="<?= $today->format('n') ?>" data-day="<?= $today->format('j') ?>">
+<body id="top" data-month="<?= $today->format('n') ?>" data-day="<?= $today->format('j') ?>">
     <a class="skip-link" href="#stories">Skip to stories</a>
     <header class="masthead wrap">
         <div class="brand-lockup"><a class="brand" href="./" aria-label="WDHOTD, home">WDH<span>OTD</span></a><span class="brand-tagline">What Did Happened On This Day</span></div>
@@ -89,5 +89,6 @@ $initialArchive = publicData(sprintf('%02d-%02d.json', $pageMonth, $pageDay));
     <dialog id="detailDialog" aria-labelledby="detailTitle"><div class="dialog-toolbar"><span>FROM THE DAILY ARCHIVES</span><button id="closeDetail" class="icon-button" aria-label="Close story">✕</button></div><div id="detailContent"></div></dialog>
     <dialog id="clearDialog" aria-labelledby="clearTitle"><div class="confirm-body"><h2 id="clearTitle">Clear this browser’s collection?</h2><p>Export a backup first if you want to recover these stories later.</p><button id="cancelClear" class="outline-button">Keep my stories</button><button id="confirmClear" class="solid-button">Clear collection</button></div></dialog>
     <div class="collection-notice" id="collectionNotice" role="status" aria-live="polite" hidden></div>
+    <a class="back-to-top" id="backToTop" href="#top" hidden><span aria-hidden="true">↑</span> Back to top</a>
 </body>
 </html>
