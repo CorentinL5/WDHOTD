@@ -27,7 +27,7 @@ if (proc_close($process) !== 0) throw new RuntimeException('Package failed: ' . 
 $result = json_decode($output, true, 512, JSON_THROW_ON_ERROR);
 $root = $result['public_directory'];
 $manifest = json_decode(file_get_contents($result['manifest']), true, 512, JSON_THROW_ON_ERROR);
-foreach (['.env', '.git', 'config.php', 'import.php', 'sync.php', 'configure.php', 'db_wdhotd.sql', 'scripts', 'tests', 'tmp', '.github'] as $private) {
+foreach (['.env', '.git', '.metrics', 'config.php', 'import.php', 'sync.php', 'configure.php', 'db_wdhotd.sql', 'scripts', 'tests', 'tmp', '.github'] as $private) {
     if (file_exists($root . '/' . $private)) throw new RuntimeException('A private file entered the public release: ' . $private);
 }
 foreach ($manifest['files'] as $file => $hash) {

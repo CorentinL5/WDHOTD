@@ -37,6 +37,10 @@ Local Laragon URL: [https://wdhotd.test:8443](https://wdhotd.test:8443). Direct 
 
 ## Visitors never connect to MySQL
 
+The initial edition now requests only the selected category instead of every story for that date. A five-minute browser cache retains at most eight archive/category results. Conditional feed requests can return HTTP 304 before JSON decoding. PHP compresses responses when zlib is available; compatible Apache hosts also cache versioned assets. The `(month, day, year, id)` index supports ordered private exports; run `php migrate.php` after updating.
+
+The public **Stats** tab shows archive totals and approximate daily page-load/action counts. Counters write to a separate bounded private file, never the history database. There are no counter cookies, persistent IDs, stored IPs or imported-file contents. See [deployment counter configuration](DEPLOYMENT.md#public-usage-counters) for storage, retention, accuracy limits and production activation.
+
 MySQL remains the authoritative store for stories, source metadata, import history, project settings and optional advertisements. A CLI job generates sanitized public JSON files in the ignored `data-cache/` directory. Public pages and APIs only read those generated files; they never connect to MySQL or Wikipedia, record visits, or start an import. Public reading creates no session cookie.
 
 `feed.php` caps pages at 100 items and offsets at 10,000. JSON responses provide ETags, HTTP 304 and a five-minute public cache lifetime. These reduce repeated transfer and server work; hosting-level request limits are still separate from application caching.

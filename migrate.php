@@ -7,6 +7,10 @@ require_once __DIR__ . '/history.php';
 try {
     require __DIR__ . '/config.php';
     $columns = $db->query('SHOW COLUMNS FROM OTDItem')->fetchAll(PDO::FETCH_COLUMN);
+    $archiveIndex = $db->query("SHOW INDEX FROM OTDItem WHERE Key_name = 'idx_day_month'")->fetchAll();
+    $indexColumns = array_column($archiveIndex, 'Column_name');
+    if ($indexColumns === ['month', 'day']) $db->exec('ALTER TABLE OTDItem DROP INDEX idx_day_month, ADD INDEX idx_day_month (month, day, year, id)');
+    elseif (!$indexColumns) $db->exec('ALTER TABLE OTDItem ADD INDEX idx_day_month (month, day, year, id)');
     if (!in_array('event_text', $columns, true)) $db->exec('ALTER TABLE OTDItem ADD COLUMN event_text TEXT NULL');
     if (!in_array('featured', $columns, true)) $db->exec('ALTER TABLE OTDItem ADD COLUMN featured TINYINT(1) NOT NULL DEFAULT 0');
     $db->exec("CREATE TABLE IF NOT EXISTS OTDImport (

@@ -44,6 +44,7 @@ jobs:
           node --check assets/js/collection.js
           node --test tests/collection.test.cjs
           php tests/images.php
+          php tests/metrics.php
       - name: Prepare isolated database and published fixtures
         run: |
           printf '%s\n' 'DB_HOST_LOCAL=127.0.0.1' 'DB_USER_LOCAL=root' 'DB_PASS_LOCAL=wdhotd-test-only' 'DB_NAME_LOCAL=wdhotd_test' 'APP_ENV=testing' 'APP_DEBUG=false' > .env
@@ -53,7 +54,7 @@ jobs:
           php tests/package.php
       - name: HTTP and cache integration
         run: |
-          php -S 127.0.0.1:8000 > /tmp/wdhotd-http.log 2>&1 &
+          WDHOTD_METRICS_DIR="$RUNNER_TEMP/wdhotd-metrics" php -S 127.0.0.1:8000 > /tmp/wdhotd-http.log 2>&1 &
           for attempt in $(seq 1 20); do
             if curl --fail --silent http://127.0.0.1:8000/ > /dev/null; then break; fi
             sleep 1

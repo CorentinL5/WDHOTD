@@ -2,6 +2,9 @@
 /** Shared public-response headers. This file never loads private configuration. */
 function webHeaders(): void {
     if (headers_sent()) return;
+    if (PHP_SAPI !== 'cli' && extension_loaded('zlib') && !filter_var(ini_get('zlib.output_compression'), FILTER_VALIDATE_BOOLEAN) && !in_array('ob_gzhandler', ob_list_handlers(), true)) {
+        ob_start('ob_gzhandler');
+    }
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: DENY');
     header('Referrer-Policy: strict-origin-when-cross-origin');

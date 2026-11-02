@@ -17,6 +17,7 @@ This is a small volunteer-maintained project; there is no guaranteed response ti
 ## Deployment expectations
 
 - Public routes read generated archives only; database access and imports are CLI-only.
+- The sole public write endpoint, `metrics.php`, accepts only bounded same-origin allowlisted counter events. It has no SQL connection. In production its persistent aggregate file must be outside the web root; protect that directory and enforce host-level request limits. Counters are public aggregates and are not authenticated unique-visitor figures.
 - Deploy the allowlisted public package described in DEPLOYMENT.md instead of uploading the checkout. Reader backup imports are validated in the browser and never uploaded.
 - Keep `.env`, credentials, private settings, logs and personal database contents out of Git and public document roots.
 - Protect `.git` and environment files in the web server configuration. Disable directory listing.

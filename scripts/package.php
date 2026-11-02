@@ -29,7 +29,7 @@ function publishFile(string $relative, string $content): void {
     if (file_put_contents($destination, $content) === false) throw new RuntimeException('Cannot write release file.');
     $manifest[$relative] = hash('sha256', $content);
 }
-foreach (['index.php', 'feed.php', 'stats.php', 'calendar.php', 'sponsor.php', 'public_data.php', 'web.php', 'history.php', 'images.php', 'LICENSE', 'NOTICE'] as $file) publishFile($file, (string)file_get_contents($project . '/' . $file));
+foreach (['index.php', 'feed.php', 'stats.php', 'calendar.php', 'sponsor.php', 'metrics.php', 'metrics_service.php', 'public_data.php', 'web.php', 'history.php', 'images.php', 'LICENSE', 'NOTICE'] as $file) publishFile($file, (string)file_get_contents($project . '/' . $file));
 $assets = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($project . '/assets', FilesystemIterator::SKIP_DOTS));
 foreach ($assets as $file) {
     if ($file->isLink()) throw new RuntimeException('Symlinks are not allowed in release assets.');
@@ -56,6 +56,8 @@ foreach ($calendar as $date) {
     $publishedDates[] = ['month' => $month, 'day' => $day];
 }
 publishFile('data-cache/calendar.json', json_encode(['dates' => $publishedDates], JSON_THROW_ON_ERROR));
+$archiveStats = publicData('archive-stats.json');
+if ($archiveStats) publishFile('data-cache/archive-stats.json', json_encode(array_intersect_key($archiveStats, array_flip(['dates', 'stats', 'yearRange', 'updated_at'])), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
 $ads = array_map(static fn($ad) => array_intersect_key($ad, array_flip(['kind', 'title', 'body', 'destination', 'link_label', 'starts_at', 'ends_at'])), array_slice($settings['ads'] ?? [], 0, 20));
 publishFile('data-cache/settings.json', json_encode(['site_url' => $siteURL ?? '', 'support_url' => publicSupportURL($settings['support_url'] ?? null) ?? '', 'source_url' => publicSupportURL($settings['source_url'] ?? null) ?? '', 'ads' => $ads], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
 $apache = (string)file_get_contents($project . '/.htaccess');
