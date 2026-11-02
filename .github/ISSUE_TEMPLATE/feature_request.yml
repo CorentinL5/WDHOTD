@@ -1,0 +1,17 @@
+name: Feature idea
+description: Suggest an improvement to WDHOTD.
+title: "[Idea] "
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What would this help people do?
+    validations:
+      required: true
+  - type: textarea
+    id: approach
+    attributes:
+      label: Suggested approach
+      description: Consider accessibility, hosting cost and the account-free reading experience.
+    validations:
+      required: true

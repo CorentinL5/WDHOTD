@@ -1,4 +1,5 @@
 <?php
+if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 /**
  * Configuration principale de WDHOTD
  * Charge les variables d'environnement depuis .env si disponible
@@ -21,12 +22,11 @@ if (file_exists($envFile)) {
 }
 
 // Détection de l'environnement (local vs production)
-$host = $_SERVER["HTTP_HOST"] ?? '';
+$host = strtolower(explode(':', $_SERVER["HTTP_HOST"] ?? 'localhost')[0]);
 $isLocal = (
     $host === "localhost" ||
     $host === "wdhotd.test" ||
-    strpos($host, "192.168") !== false ||
-    strpos($host, "127.0.0.1") !== false ||
+    strpos($host, "192.168.") === 0 ||
     $host === "127.0.0.1"
 );
 
@@ -44,6 +44,7 @@ if ($isLocal) {
 }
 
 // Configuration de l'application
+date_default_timezone_set($_ENV['APP_TIMEZONE'] ?? 'Europe/Brussels');
 define('APP_ENV', $_ENV['APP_ENV'] ?? ($isLocal ? 'development' : 'production'));
 define('APP_DEBUG', filter_var($_ENV['APP_DEBUG'] ?? $isLocal, FILTER_VALIDATE_BOOLEAN));
 
@@ -64,6 +65,9 @@ try {
     
     $db = new PDO($dsn, $user, $pass, $options);
 } catch (PDOException $e) {
+    if (defined('JSON_RESPONSE')) {
+        throw new RuntimeException('Les archives sont momentanément indisponibles. Réessayez dans un instant.', 0, $e);
+    }
     if (APP_DEBUG) {
         die("DB Error: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'));
     } else {
@@ -136,4 +140,4 @@ if (!defined('SKIP_LOG')) {
     );
 }
 
-require_once __DIR__ . "/auto_import.php";
+// Imports are triggered by data endpoints, never by loading configuration.

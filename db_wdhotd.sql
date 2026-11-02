@@ -9,10 +9,10 @@ CREATE DATABASE IF NOT EXISTS `wdhotd`
 USE `wdhotd`;
 
 -- --------------------------------------------------------
--- DROP old table (safe for re-import)
+-- Preserve existing tables and data
 -- --------------------------------------------------------
 
-DROP TABLE IF EXISTS `OTDItem`;
+-- Existing data is preserved. For an existing installation run: php migrate.php
 
 -- --------------------------------------------------------
 -- TABLE: OTDItem
@@ -38,6 +38,8 @@ CREATE TABLE IF NOT EXISTS `OTDItem` (
 
     -- Extracts
                            `extract_short` TEXT NULL,
+                           `event_text` TEXT NULL,
+                           `featured` TINYINT(1) NOT NULL DEFAULT 0,
                            `extract_html` MEDIUMTEXT NULL,
 
     -- Visual data
@@ -56,6 +58,17 @@ CREATE TABLE IF NOT EXISTS `OTDItem` (
                            INDEX `idx_type` (`type`),
                            INDEX `idx_pageid` (`pageid`),
                            INDEX `idx_day_month` (`month`, `day`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `OTDImport` (
+    `month` TINYINT UNSIGNED NOT NULL,
+    `day` TINYINT UNSIGNED NOT NULL,
+    `status` VARCHAR(16) NOT NULL DEFAULT 'pending',
+    `attempted_at` DATETIME NULL,
+    `succeeded_at` DATETIME NULL,
+    `item_count` INT UNSIGNED NOT NULL DEFAULT 0,
+    `error_message` TEXT NULL,
+    PRIMARY KEY (`month`, `day`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 

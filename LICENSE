@@ -1,0 +1,66 @@
+WDHOTD — Source-visible, contribution-only permission
+Version 1 — 2026-11-02
+
+Copyright (c) 2026 CorentinL5 and the respective contributors.
+All rights reserved except for the limited permissions below.
+
+Original project: https://github.com/CorentinL5/WDHOTD
+Project owner: CorentinL5
+
+1. Limited contribution permission
+
+You may inspect and study the source, make a local working copy, modify it
+and run it locally solely to evaluate the original project or prepare a
+contribution to the original repository. You may submit those changes as
+issues, patches or pull requests to that repository. A contribution fork
+on GitHub may be used for that upstream contribution workflow.
+
+Keep this permission notice and the applicable attribution with your
+working copies and contributions.
+
+2. No independent reuse or distribution permission
+
+Except as permitted above, by mandatory law or by rights already granted
+under GitHub's terms, this notice does not authorize you to copy,
+republish, redistribute, sublicense, sell, rent, host, deploy, or use the
+code or a modified version as a separate project, product or service.
+Commercial exploitation, paid access, advertising-supported deployment
+and other monetization by recipients are not authorized by this notice.
+Separate written permission from the relevant rights holders is required
+for uses outside the limited contribution permission.
+
+3. Contributions
+
+Contributions to the original project are subject to CONTRIBUTING.md.
+Contributors retain ownership of their original work and grant the
+project owner the rights expressly described there. No copyright
+assignment or license to unrelated third-party material is implied.
+
+4. GitHub and pre-existing rights
+
+This notice does not remove the rights GitHub and its users receive under
+GitHub's applicable terms of service, including the ability to view and
+fork a public repository within that service. It is not a technical
+restriction on downloading or copying publicly visible code.
+
+It does not revoke rights already granted for previously distributed
+versions under an earlier license, or limit rights that cannot lawfully
+be restricted.
+
+5. Third-party material
+
+Wikipedia text, media, external fonts and other separately licensed
+material retain their respective licenses and attribution requirements.
+This notice applies only to code for which the relevant rights holders
+can grant the stated permissions. It does not replace third-party terms
+or grant rights in names, trademarks or branding.
+
+6. No warranty
+
+To the extent permitted by law, the software is provided as is, without
+warranty of any kind. The copyright holders and contributors are not
+liable for claims, damages or other liability arising from use of the
+software.
+
+This is a project-specific limited permission, not an OSI-approved open
+source license.

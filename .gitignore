@@ -1,7 +1,8 @@
 # Configuration et variables d'environnement
 .env
 .env.local
-config.php
+.env.*
+!.env.example
 
 # IDE et éditeurs
 .idea/
@@ -24,6 +25,7 @@ error_log
 tmp/
 temp/
 .import_lock
+/data-cache/
 
 # OS
 Thumbs.db

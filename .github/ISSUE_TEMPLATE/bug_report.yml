@@ -1,0 +1,26 @@
+name: Bug report
+description: Report a reproducible problem with the original WDHOTD project.
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: "For vulnerabilities, use the private reporting link in SECURITY.md. Never post secrets here."
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Include what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include the date, view and browser when relevant. Use dummy data.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Screenshots and environment
+      description: Add browser/device details or PHP/MySQL versions as appropriate.

@@ -1,733 +1,425 @@
-/**
- * WDHOTD Feed Manager - Mode TikTok
- * Scroll vertical infini avec cartes pleine page
- * Avec sauvegarde de position et gestion des éléments vus
- */
+'use strict';
 
-document.addEventListener("DOMContentLoaded", () => {
-    // Configuration
-    const CONFIG = {
-        limit: 10, // Charger 10 items à la fois
-        debounceDelay: 300,
-        scrollSaveInterval: 1000, // Sauvegarder la position toutes les secondes
-        viewedItemsKey: 'wdhotd_viewed_items',
-        scrollPositionKey: 'wdhotd_scroll_position',
-        currentDateKey: 'wdhotd_current_date'
-    };
+(() => {
+    const $ = selector => document.querySelector(selector);
+    const labels = { events: 'Event', births: 'Born on this day', deaths: 'In memoriam', holidays: 'Tradition' };
+    const state = { items: [], view: 'edition', type: 'events', query: '', count: 7, position: 0, controller: null, month: Number(document.body.dataset.month), day: Number(document.body.dataset.day) };
+    const today = { month: state.month, day: state.day };
+    const stories = $('#stories');
+    const status = $('#status');
+    const dialog = $('#detailDialog');
+    let detailTrigger = null;
+    let timelineObserver = null;
+    let newestFirst = false;
 
-    // État de l'application
-    let offset = 0;
-    let isLoading = false;
-    let hasMore = true;
-    let currentFilter = 'all';
-    let currentDate = {
-        month: new Date().getMonth() + 1,
-        day: new Date().getDate()
-    };
-    
-    // Récupérer les éléments déjà vus depuis localStorage
-    let viewedItems = new Set();
-    try {
-        const stored = localStorage.getItem(CONFIG.viewedItemsKey);
-        if (stored) {
-            viewedItems = new Set(JSON.parse(stored));
-        }
-    } catch (e) {
-        console.error("Error loading viewed items:", e);
+    function el(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined) node.textContent = text;
+        return node;
     }
-    
-    // Restaurer la date si elle est différente
-    try {
-        const storedDate = localStorage.getItem(CONFIG.currentDateKey);
-        if (storedDate) {
-            const parsed = JSON.parse(storedDate);
-            const today = { month: new Date().getMonth() + 1, day: new Date().getDate() };
-            if (parsed.month === today.month && parsed.day === today.day) {
-                // Même date, on peut restaurer la position
-            } else {
-                // Date différente, réinitialiser
-                viewedItems.clear();
-                localStorage.removeItem(CONFIG.scrollPositionKey);
-            }
-        }
-    } catch (e) {
-        console.error("Error checking date:", e);
-    }
-    
-    // Sauvegarder la date actuelle
-    localStorage.setItem(CONFIG.currentDateKey, JSON.stringify(currentDate));
 
-    // Éléments DOM
-    const feedEl = document.getElementById("feed");
-    const loadingIndicator = document.getElementById("loadingIndicator");
-    const statsContainer = document.getElementById("statsContainer");
-
-    if (!feedEl) {
-        console.error("Feed element not found");
-        return;
-    }
-    
-    // Indicateur de restauration de position
-    let isRestoringScroll = false;
-    
-    /**
-     * Sauvegarde la position de scroll dans localStorage
-     */
-    function saveScrollPosition() {
-        if (isRestoringScroll) return;
+    function safeURL(value) {
         try {
-            const scrollY = window.scrollY || window.pageYOffset;
-            localStorage.setItem(CONFIG.scrollPositionKey, scrollY.toString());
-        } catch (e) {
-            console.error("Error saving scroll position:", e);
+            const url = new URL(value);
+            return url.protocol === 'https:' ? url.href : null;
+        } catch { return null; }
+    }
+
+    function yearLabel(year) {
+        return year === null || year === undefined ? 'Every year' : year < 0 ? `${Math.abs(year)} BC` : String(year);
+    }
+
+    function shorten(text, length = 200) {
+        if (text.length <= length) return text;
+        const cut = text.slice(0, length);
+        const space = cut.lastIndexOf(' ');
+        return cut.slice(0, space > length * 0.6 ? space : length) + '…';
+    }
+
+    function dateLabel() {
+        return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2000, state.month - 1, state.day)));
+    }
+
+    function metadata(item) {
+        const meta = el('div', 'story-meta');
+        meta.append(el('span', 'year', yearLabel(item.year)), el('span', '', '·'), el('span', '', labels[item.type] || 'Story'));
+        return meta;
+    }
+
+    function visual(item, hero) {
+        const box = el('div', hero ? 'hero-visual' : 'card-visual');
+        const placeholder = el('div', 'image-placeholder');
+        placeholder.append(el('span', '', item.year === null ? '∞' : yearLabel(item.year)), el('small', '', 'FROM THE ARCHIVES'));
+        box.append(placeholder);
+        const media = item.image;
+        const url = safeURL(media?.src || item.thumbnail);
+        if (media) box.classList.add(`image-${media.kind}`);
+        const adequate = !media || media.width >= (hero ? 560 : 240);
+        if (url && adequate) {
+            const image = el('img');
+            image.alt = media?.title || item.selected_title || '';
+            image.loading = hero ? 'eager' : 'lazy';
+            image.decoding = 'async';
+            if (media) { image.width = media.width; image.height = media.height; }
+            image.addEventListener('load', () => {
+                if (image.naturalWidth < (hero ? 500 : 200)) image.remove();
+                else box.classList.add('image-ready');
+            }, { once: true });
+            image.addEventListener('error', () => image.remove(), { once: true });
+            image.src = url;
+            box.append(image);
+        }
+        return box;
+    }
+
+    function readButton(item, icon = false) {
+        const button = el('button', icon ? 'icon-button' : 'read-link', icon ? '↗' : 'Read the story');
+        button.type = 'button';
+        button.setAttribute('aria-label', `Read the story: ${item.selected_title}`);
+        if (!icon) button.append(el('span', '', '↗'));
+        button.addEventListener('click', () => openDetail(item, button));
+        return button;
+    }
+
+    function card(item, hero = false) {
+        const article = el('article', hero ? 'hero-story' : 'story-card');
+        const copy = hero ? el('div', 'hero-copy') : article;
+        article.append(visual(item, hero));
+        if (hero) copy.append(el('span', 'story-number', '01 / IN THE SPOTLIGHT'));
+        copy.append(metadata(item), el(hero ? 'h2' : 'h3', '', item.selected_title || 'A story worth discovering'), el('p', 'event-text', shorten(item.event_text || item.extract_short || '', hero ? 360 : 180)), readButton(item));
+        if (hero) article.append(copy);
+        return article;
+    }
+
+    function selection(items) {
+        // Promote Wikipedia's selected events, then spread the selection across centuries.
+        const ranked = [...items].sort((a, b) => Number(b.featured) - Number(a.featured) || Number(Boolean(b.event_text)) - Number(Boolean(a.event_text)) || Number(Boolean(b.thumbnail)) - Number(Boolean(a.thumbnail)) || b.year - a.year || a.id - b.id);
+        const first = [], rest = [], centuries = new Set();
+        for (const item of ranked) {
+            const century = item.year === null ? 'annual' : Math.floor(item.year / 100);
+            if (!centuries.has(century) || item.featured) { first.push(item); centuries.add(century); }
+            else rest.push(item);
+        }
+        return [...first, ...rest];
+    }
+
+    function filtered() {
+        const query = state.query.trim().toLocaleLowerCase('en');
+        return state.items.filter(item => (state.type === 'all' || item.type === state.type) && (!query || `${item.selected_title} ${item.event_text} ${item.extract_short} ${item.year ?? ''}`.toLocaleLowerCase('en').includes(query)));
+    }
+
+    function message(text, retry = false) {
+        status.replaceChildren(el('span', '', text));
+        status.hidden = false;
+        status.classList.toggle('error', retry);
+        if (retry) {
+            const button = el('button', 'outline-button', 'Try again');
+            button.addEventListener('click', load);
+            status.append(button);
         }
     }
-    
-    /**
-     * Restaure la position de scroll depuis localStorage
-     */
-    async function restoreScrollPosition() {
+
+    function render() {
+        if (timelineObserver) { timelineObserver.disconnect(); timelineObserver = null; }
+        const items = selection(filtered());
+        stories.replaceChildren();
+        $('#moreRow').hidden = true;
+        $('#storyCount').textContent = `${items.length} stor${items.length === 1 ? 'y' : 'ies'} to explore`;
+        if (!items.length) {
+            message(state.query ? 'No stories match your search.' : 'No stories in this category for this date yet. Try Everything or explore another date.');
+            return;
+        }
+        status.hidden = true;
+        if (state.view === 'timeline') renderTimeline(items);
+        else if (state.view === 'discovery') renderDiscovery(items);
+        else {
+            const label = el('div', 'section-label');
+            label.append(el('strong', '', '01'), el('span', '', 'A story to start with'));
+            stories.append(label, card(items[0], true));
+            if (items.length > 1) {
+                const heading = el('div', 'section-label');
+                heading.append(el('strong', '', '02'), el('span', '', 'The same day. A different century.'));
+                const grid = el('div', 'story-grid');
+                items.slice(1, state.count).forEach(item => grid.append(card(item)));
+                stories.append(heading, grid);
+            }
+            $('#moreRow').hidden = state.count >= items.length;
+        }
+    }
+
+    function renderDiscovery(items) {
+        state.position = Math.min(state.position, items.length - 1);
+        const controls = el('div', 'discovery-controls');
+        controls.append(el('span', '', `Story ${state.position + 1} of ${items.length}`));
+        const buttons = el('div', 'discovery-buttons');
+        const previous = el('button', 'outline-button', '← Previous');
+        const next = el('button', 'outline-button', 'Next story →');
+        previous.disabled = state.position === 0;
+        next.disabled = state.position === items.length - 1;
+        previous.addEventListener('click', () => { state.position--; render(); $('.discovery-buttons button').focus(); });
+        next.addEventListener('click', () => { state.position++; render(); $('.discovery-buttons button:last-child').focus(); });
+        buttons.append(previous, next);
+        controls.append(buttons);
+        stories.append(controls, card(items[state.position], true), el('p', 'discovery-note', 'One story at a time. Read the full story for a little more context, then see where your curiosity takes you next.'));
+    }
+
+    function renderTimeline(items) {
+        const dated = items.filter(item => item.year !== null);
+        const annual = items.filter(item => item.year === null);
+        dated.sort((a, b) => (newestFirst ? b.year - a.year : a.year - b.year) || a.id - b.id);
+        const sorted = [...dated, ...annual];
+        const years = dated.map(item => item.year);
+        const first = years.length ? Math.min(...years) : null;
+        const last = years.length ? Math.max(...years) : null;
+        const stage = el('div', 'chronicle');
+        const intro = el('header', 'chrono-intro');
+        const introCopy = el('div');
+        introCopy.append(el('div', 'eyebrow', 'ONE DATE. A THOUSAND CONNECTIONS.'), el('h2', '', 'Follow the thread of time.'));
+        const range = el('div', 'chrono-range');
+        range.append(el('span', '', first === null ? 'Every year' : yearLabel(first)), el('span', 'chrono-range-rule', '→'), el('span', '', last === null ? 'Every story' : yearLabel(last)));
+        const caption = el('p', 'chrono-caption', `${items.length} stories${first === null ? '' : ` · ${new Intl.NumberFormat('en').format(last - first)} years of history`} · ${dateLabel()}`);
+        intro.append(introCopy, range, caption);
+        const overview = el('nav', 'chrono-overview');
+        overview.setAttribute('aria-label', 'Jump to a year on the timeline');
+        const mapYears = new Map();
+        if (years.length) {
+            const guide = el('div', 'chrono-overview-labels');
+            guide.append(el('span', '', yearLabel(first)), el('span', '', 'EXPLORE THE YEARS'), el('span', '', yearLabel(last)));
+            overview.append(guide);
+            intro.append(overview);
+        }
+        const rail = el('nav', 'chrono-nav');
+        rail.setAttribute('aria-label', 'Jump to an era');
+        const progress = el('span', 'chrono-current', yearLabel(sorted[0].year));
+        const jumps = el('div', 'chrono-jumps');
+        const direction = el('button', 'chrono-direction', newestFirst ? 'Newest first ↓' : 'Oldest first ↓');
+        direction.setAttribute('aria-label', newestFirst ? 'Change to oldest first' : 'Change to newest first');
+        direction.addEventListener('click', () => { newestFirst = !newestFirst; render(); $('.chrono-direction').focus({ preventScroll: true }); });
+        rail.append(progress, jumps, direction);
+        stage.append(intro, rail);
+        const track = el('div', 'chrono-track');
+        track.append(el('div', 'chrono-origin', 'YOUR JOURNEY STARTS HERE'));
+        const eras = new Map();
+        let previousYear = null;
+        let position = 0;
+        for (const item of sorted) {
+            const era = item.year === null ? 'Every year' : item.year < 0 ? 'BC' : item.year < 500 ? '1–499' : item.year < 1500 ? '500–1499' : item.year < 1800 ? '1500s–1700s' : item.year < 1900 ? '1800s' : item.year < 2000 ? '1900s' : '2000s';
+            if (!eras.has(era)) {
+                const marker = el('h3', 'chrono-era', era === 'Every year' ? 'Traditions that return.' : era.includes('–') ? era : `The ${era === 'BC' ? 'ancient world' : era}`);
+                marker.tabIndex = -1;
+                marker.id = `era-${eras.size}`;
+                track.append(marker);
+                const jump = el('button', 'chrono-jump', era);
+                jump.setAttribute('aria-controls', marker.id);
+                jump.addEventListener('click', () => { marker.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' }); marker.focus({ preventScroll: true }); });
+                jumps.append(jump);
+                eras.set(era, jump);
+            }
+            const gap = item.year !== null && previousYear !== null ? Math.abs(item.year - previousYear) : 0;
+            if (gap >= 20) {
+                const bridge = el('div', 'chrono-gap');
+                bridge.append(el('span', '', `${gap} years ${newestFirst ? 'earlier' : 'later'}`));
+                track.append(bridge);
+            }
+            const row = el('div', `chrono-row ${position % 2 ? 'on-right' : 'on-left'}`);
+            row.dataset.year = yearLabel(item.year);
+            row.dataset.era = era;
+            const date = el('div', 'chrono-date');
+            date.append(el('span', 'chrono-pin'), el('span', 'chrono-year', yearLabel(item.year)));
+            const article = el('article', 'chrono-card');
+            article.append(visual(item, false));
+            const copy = el('div', 'chrono-copy');
+            copy.append(el('div', 'story-meta', labels[item.type]), el('h4', '', item.selected_title), el('p', 'event-text', item.event_text || item.extract_short), readButton(item));
+            article.append(copy);
+            row.append(date, article);
+            track.append(row);
+            if (item.year !== null && !mapYears.has(item.year)) {
+                const point = el('button', 'chrono-point');
+                point.style.setProperty('--year-position', `${((item.year - first) / Math.max(1, last - first)) * 100}%`);
+                point.setAttribute('aria-label', `Jump to ${yearLabel(item.year)}`);
+                point.title = yearLabel(item.year);
+                point.addEventListener('click', () => {
+                    row.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
+                    row.querySelector('.read-link').focus({ preventScroll: true });
+                });
+                overview.append(point);
+                mapYears.set(item.year, point);
+            }
+            previousYear = item.year;
+            position++;
+        }
+        const end = el('div', 'chrono-end');
+        end.append(el('span', 'chrono-end-dot'), el('p', '', 'History keeps going. So does your curiosity.'), el('small', '', 'Events are shown in chronological order. Distances are not to scale.'));
+        track.append(end);
+        stage.append(track);
+        stories.append(stage);
+        timelineObserver = new IntersectionObserver(entries => {
+            entries.forEach(entry => entry.target.classList.toggle('is-current', entry.isIntersecting));
+            const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+            if (!visible.length) return;
+            progress.textContent = visible[0].target.dataset.year;
+            eras.forEach((button, era) => button.setAttribute('aria-current', String(era === visible[0].target.dataset.era)));
+            mapYears.forEach((button, year) => button.classList.toggle('is-current', yearLabel(year) === visible[0].target.dataset.year));
+        }, { rootMargin: '-15% 0px -55% 0px', threshold: 0 });
+        intro.dataset.year = yearLabel(sorted[0].year);
+        intro.dataset.era = eras.keys().next().value;
+        timelineObserver.observe(intro);
+        track.querySelectorAll('.chrono-row').forEach(row => timelineObserver.observe(row));
+    }
+
+    function openDetail(item, trigger) {
+        detailTrigger = trigger;
+        const body = el('article', 'detail-body');
+        const heading = el('h2', '', item.selected_title);
+        heading.id = 'detailTitle';
+        body.append(metadata(item), heading, el('p', 'event-text', item.event_text || item.extract_short));
+        const imageURL = safeURL(item.image?.src || item.thumbnail);
+        if (imageURL) {
+            const image = el('img');
+            image.src = imageURL;
+            image.alt = item.image?.title || item.selected_title;
+            image.addEventListener('error', () => image.remove(), { once: true });
+            body.append(image);
+            if (item.image?.title) body.append(el('p', 'image-credit', `Related image: ${item.image.title}. Source: Wikipedia / Wikimedia.`));
+        }
+        if (item.extract_short && item.extract_short !== item.event_text) body.append(el('h3', 'context-label', 'The bigger picture'), el('p', 'context-text', item.extract_short));
+        const wikiURL = safeURL(item.wikipedia_url);
+        if (wikiURL) {
+            const link = el('a', 'wiki-link', 'Keep exploring on Wikipedia ↗');
+            link.href = wikiURL;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            body.append(link);
+        }
+        $('#detailContent').replaceChildren(body);
+        dialog.showModal();
+        dialog.scrollTop = 0;
+        $('#closeDetail').focus();
+    }
+
+    async function load() {
+        if (state.controller) state.controller.abort();
+        const controller = new AbortController();
+        state.controller = controller;
+        state.items = [];
+        state.position = 0;
+        state.count = 7;
+        stories.replaceChildren();
+        stories.setAttribute('aria-busy', 'true');
+        $('#moreRow').hidden = true;
+        $('#storyCount').textContent = 'Opening the archives…';
+        message('Gathering the stories behind this date…');
+        $('#headerDate').textContent = $('#editionDate').textContent = dateLabel();
+        const params = new URLSearchParams({ month: state.month, day: state.day, view: state.view });
+        history.replaceState(null, '', `${location.pathname}?${params}`);
+        const all = [];
         try {
-            const savedPosition = localStorage.getItem(CONFIG.scrollPositionKey);
-            if (savedPosition === null) return;
-            
-            const position = parseInt(savedPosition, 10);
-            if (isNaN(position) || position <= 0) return;
-            
-            isRestoringScroll = true;
-            
-            // Charger plus d'éléments si nécessaire pour atteindre la position sauvegardée
-            let attempts = 0;
-            const maxAttempts = 10;
-            
-            const checkAndScroll = () => {
-                const currentHeight = document.documentElement.scrollHeight;
-                const headerHeight = document.querySelector('.tiktok-header')?.offsetHeight || 0;
-                
-                // Si on a assez de contenu pour atteindre la position, scroller
-                if (currentHeight > position + window.innerHeight || attempts >= maxAttempts) {
-                    window.scrollTo({
-                        top: position,
-                        behavior: 'auto'
-                    });
-                    
-                    // Marquer les éléments vus qui sont au-dessus de la position
-                    setTimeout(() => {
-                        markViewedItemsAbove(position);
-                        isRestoringScroll = false;
-                    }, 100);
-                } else if (hasMore && !isLoading && attempts < maxAttempts) {
-                    // Charger plus et réessayer
-                    attempts++;
-                    loadFeed().then(() => {
-                        setTimeout(checkAndScroll, 200);
-                    });
-                } else {
-                    // Pas assez de contenu, scroller au maximum possible
-                    window.scrollTo({
-                        top: currentHeight - window.innerHeight,
-                        behavior: 'auto'
-                    });
-                    isRestoringScroll = false;
-                }
-            };
-            
-            // Démarrer la vérification après un court délai
-            setTimeout(checkAndScroll, 300);
-        } catch (e) {
-            console.error("Error restoring scroll position:", e);
-            isRestoringScroll = false;
-        }
-    }
-    
-    /**
-     * Marque les éléments qui sont visibles au-dessus d'une certaine position
-     */
-    function markViewedItemsAbove(maxY) {
-        const cards = feedEl.querySelectorAll(".tiktok-card:not(.viewed)");
-        cards.forEach(card => {
-            const rect = card.getBoundingClientRect();
-            const cardTop = rect.top + window.scrollY;
-            if (cardTop < maxY) {
-                const cardId = card.getAttribute("data-id");
-                if (cardId) {
-                    viewedItems.add(cardId);
-                    card.classList.add("viewed");
-                }
+            let hasMore = true;
+            while (hasMore) {
+                const query = new URLSearchParams({ month: state.month, day: state.day, type: 'all', limit: 100, offset: all.length });
+                const response = await fetch(`feed.php?${query}`, { signal: controller.signal });
+                let data;
+                try { data = await response.json(); } catch { throw new Error('The archives are temporarily unavailable. Please try again in a moment.'); }
+                if (!response.ok || !data.success) throw new Error(data.error || 'Could not load the stories.');
+                all.push(...data.data);
+                hasMore = data.meta.has_more && data.data.length > 0;
             }
-        });
-        if (cards.length > 0) {
-            saveViewedItems();
-        }
-    }
-    
-    /**
-     * Sauvegarde la liste des éléments vus
-     */
-    function saveViewedItems() {
-        try {
-            localStorage.setItem(CONFIG.viewedItemsKey, JSON.stringify(Array.from(viewedItems)));
-        } catch (e) {
-            console.error("Error saving viewed items:", e);
-        }
-    }
-    
-    // Sauvegarder la position de scroll périodiquement
-    let scrollSaveTimer;
-    window.addEventListener("scroll", () => {
-        clearTimeout(scrollSaveTimer);
-        scrollSaveTimer = setTimeout(saveScrollPosition, CONFIG.scrollSaveInterval);
-        
-        // Marquer les éléments visibles comme vus
-        markVisibleItemsAsViewed();
-    }, { passive: true });
-    
-    // Sauvegarder aussi avant de quitter la page
-    window.addEventListener("beforeunload", saveScrollPosition);
-    
-    // Bouton scroll to top
-    const scrollToTopBtn = document.getElementById("scrollToTop");
-    if (scrollToTopBtn) {
-        // Afficher/masquer le bouton selon le scroll
-        window.addEventListener("scroll", () => {
-            if (window.scrollY > 500) {
-                scrollToTopBtn.classList.add("visible");
-            } else {
-                scrollToTopBtn.classList.remove("visible");
-            }
-        }, { passive: true });
-        
-        // Scroll vers le haut au clic
-        scrollToTopBtn.addEventListener("click", () => {
-            window.scrollTo({
-                top: 0,
-                behavior: "smooth"
-            });
-        });
-    }
-    
-    /**
-     * Marque les éléments visibles à l'écran comme vus
-     */
-    function markVisibleItemsAsViewed() {
-        const cards = feedEl.querySelectorAll(".tiktok-card:not(.viewed)");
-        const viewportTop = window.scrollY;
-        const viewportBottom = viewportTop + window.innerHeight;
-        
-        cards.forEach(card => {
-            const rect = card.getBoundingClientRect();
-            const cardTop = rect.top + window.scrollY;
-            const cardBottom = cardTop + rect.height;
-            
-            // Si la carte est au moins partiellement visible
-            if (cardBottom > viewportTop && cardTop < viewportBottom) {
-                const cardId = card.getAttribute("data-id");
-                if (cardId) {
-                    viewedItems.add(cardId);
-                    card.classList.add("viewed");
-                }
-            }
-        });
-        
-        if (cards.length > 0) {
-            saveViewedItems();
-        }
-    }
-
-    /**
-     * Charge le feed depuis l'API
-     */
-    async function loadFeed(reset = false) {
-        if (isLoading || (!hasMore && !reset)) return;
-        
-        if (reset) {
-            offset = 0;
-            hasMore = true;
-            feedEl.innerHTML = '';
-            if (lastCardObserver) {
-                lastCardObserver.disconnect();
-            }
-        }
-        
-        isLoading = true;
-        if (loadingIndicator) {
-            loadingIndicator.style.display = "flex";
-        }
-
-        try {
-            const url = `feed.php?offset=${offset}&limit=${CONFIG.limit}&type=${currentFilter}&month=${currentDate.month}&day=${currentDate.day}`;
-            const res = await fetch(url);
-            
-            if (!res.ok) {
-                throw new Error(`HTTP error! status: ${res.status}`);
-            }
-
-            const data = await res.json();
-            
-            if (!data.success) {
-                throw new Error(data.error || "Une erreur est survenue");
-            }
-
-            const items = data.data || [];
-            
-            if (items.length === 0) {
-                hasMore = false;
-                if (loadingIndicator) {
-                    loadingIndicator.style.display = "none";
-                }
-                return;
-            }
-
-            // Rendre les items
-            items.forEach(item => {
-                const card = createTikTokCard(item);
-                feedEl.appendChild(card);
-            });
-
-            offset += items.length;
-            hasMore = items.length >= CONFIG.limit;
-            
-            // Observer pour charger plus quand on approche de la fin
-            observeLastCard();
-
+            if (controller.signal.aborted) return;
+            state.items = all;
+            render();
+            if (!all.length) message('This date is not in the published archives yet. Try Surprise me to explore an available day.', true);
         } catch (error) {
-            console.error("Error loading feed:", error);
+            if (error.name !== 'AbortError') {
+                message(error.message, true);
+                $('#storyCount').textContent = 'Archives unavailable';
+            }
         } finally {
-            isLoading = false;
-            if (loadingIndicator) {
-                loadingIndicator.style.display = "none";
-            }
+            if (state.controller === controller) stories.setAttribute('aria-busy', 'false');
         }
     }
 
-    /**
-     * Détecte si on est sur desktop
-     */
-    function isDesktop() {
-        return window.matchMedia("(min-width: 768px)").matches;
+    document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => {
+        state.view = button.dataset.view;
+        history.replaceState(null, '', `${location.pathname}?${new URLSearchParams({ month: state.month, day: state.day, view: state.view })}`);
+        document.querySelectorAll('[data-view]').forEach(tab => { tab.classList.toggle('active', tab === button); tab.setAttribute('aria-pressed', String(tab === button)); });
+        if (state.items.length) render();
+    }));
+    document.querySelectorAll('[data-type]').forEach(button => button.addEventListener('click', () => {
+        state.type = button.dataset.type;
+        state.position = 0;
+        state.count = 7;
+        document.querySelectorAll('[data-type]').forEach(tab => { tab.classList.toggle('active', tab === button); tab.setAttribute('aria-pressed', String(tab === button)); });
+        if (state.items.length) render();
+    }));
+    $('#search').addEventListener('input', event => { state.query = event.target.value; state.position = 0; state.count = 7; if (state.items.length) render(); });
+    $('#moreButton').addEventListener('click', () => { const previous = state.count; state.count += 6; render(); const added = document.querySelectorAll('.story-grid .read-link')[previous - 1]; if (added) added.focus(); });
+    $('#closeDetail').addEventListener('click', () => dialog.close());
+    dialog.addEventListener('close', () => { if (detailTrigger?.isConnected) detailTrigger.focus(); });
+    dialog.addEventListener('click', event => { if (event.target === dialog) { const rect = dialog.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close(); } });
+    $('#dateToggle').addEventListener('click', () => { const picker = $('#datePicker'); picker.hidden = !picker.hidden; $('#dateToggle').setAttribute('aria-expanded', String(!picker.hidden)); if (!picker.hidden) $('#dateDay').focus(); });
+    function setDate(month, day) {
+        const date = new Date(Date.UTC(2000, month - 1, day));
+        if (date.getUTCMonth() + 1 !== month || date.getUTCDate() !== day) { $('#dateDay').setCustomValidity('This date does not exist.'); $('#dateDay').reportValidity(); return; }
+        state.month = month;
+        state.day = day;
+        $('#dateDay').value = day;
+        $('#dateMonth').value = month;
+        $('#datePicker').hidden = true;
+        $('#dateToggle').setAttribute('aria-expanded', 'false');
+        $('#dateToggle').focus();
+        load();
     }
-
-    /**
-     * Crée une carte TikTok (pleine page mobile, carte desktop)
-     */
-    function createTikTokCard(item) {
-        const card = document.createElement("div");
-        card.className = "tiktok-card";
-        card.setAttribute("data-id", item.id || "");
-
-        const hasImage = item.thumbnail && item.thumbnail.trim() !== "";
-        const type = (item.type || "").toLowerCase();
-        const title = item.selected_title || "Untitled";
-        const year = item.year || "";
-        const extract = item.extract_html || item.extract_short || "";
-        const desktop = isDesktop();
-
-        // Design différent selon présence d'image et device
-        if (hasImage) {
-            if (desktop) {
-                // Desktop: image en header
-                card.innerHTML = `
-                    <div class="tiktok-card-bg" data-bg="${item.thumbnail}"></div>
-                    <div class="tiktok-card-overlay"></div>
-                    <div class="tiktok-card-content">
-                        <div class="tiktok-card-tag tag-${type}">${type}</div>
-                        <h2 class="tiktok-card-title">${escapeHtml(title)}</h2>
-                        ${year ? `<div class="tiktok-card-year">${year}</div>` : ''}
-                        ${extract ? `<div class="tiktok-card-extract">${truncateText(extract, 300)}</div>` : ''}
-                        ${item.wikipedia_url ? `<a href="${item.wikipedia_url}" target="_blank" rel="noopener" class="tiktok-card-link">Learn more →</a>` : ''}
-                    </div>
-                `;
-            } else {
-                // Mobile: image en arrière-plan
-                card.innerHTML = `
-                    <div class="tiktok-card-bg" data-bg="${item.thumbnail}"></div>
-                    <div class="tiktok-card-overlay"></div>
-                    <div class="tiktok-card-content">
-                        <div class="tiktok-card-tag tag-${type}">${type}</div>
-                        <h2 class="tiktok-card-title">${escapeHtml(title)}</h2>
-                        ${year ? `<div class="tiktok-card-year">${year}</div>` : ''}
-                        ${extract ? `<div class="tiktok-card-extract">${truncateText(extract, 200)}</div>` : ''}
-                        ${item.wikipedia_url ? `<a href="${item.wikipedia_url}" target="_blank" rel="noopener" class="tiktok-card-link">Learn more →</a>` : ''}
-                    </div>
-                `;
-            }
-        } else {
-            // Design sans image - fond coloré selon le type
-            card.innerHTML = `
-                <div class="tiktok-card-bg-no-image bg-${type}"></div>
-                ${!desktop ? '<div class="tiktok-card-overlay"></div>' : ''}
-                <div class="tiktok-card-content">
-                    <div class="tiktok-card-tag tag-${type}">${type}</div>
-                    <h2 class="tiktok-card-title">${escapeHtml(title)}</h2>
-                    ${year ? `<div class="tiktok-card-year">${year}</div>` : ''}
-                    ${extract ? `<div class="tiktok-card-extract">${truncateText(extract, desktop ? 300 : 300)}</div>` : ''}
-                    ${item.wikipedia_url ? `<a href="${item.wikipedia_url}" target="_blank" rel="noopener" class="tiktok-card-link">Learn more →</a>` : ''}
-                </div>
-            `;
-        }
-
-        // Charger l'image en arrière-plan si présente
-        if (hasImage) {
-            const bgEl = card.querySelector(".tiktok-card-bg[data-bg]");
-            if (bgEl) {
-                const img = new Image();
-                img.onload = () => {
-                    bgEl.style.backgroundImage = `url('${item.thumbnail}')`;
-                    bgEl.removeAttribute("data-bg");
-                    card.classList.add("loaded");
-                };
-                img.onerror = () => {
-                    // Si l'image ne charge pas, utiliser le design sans image
-                    card.classList.add("no-image-fallback");
-                };
-                img.src = item.thumbnail;
-            }
-        } else {
-            card.classList.add("loaded");
-        }
-
-        // Marquer comme vu si déjà dans la liste
-        const itemId = (item.id || "").toString();
-        if (itemId && viewedItems.has(itemId)) {
-            card.classList.add("viewed");
-        }
-        
-        // Animation d'entrée
-        setTimeout(() => {
-            card.style.opacity = "1";
-            card.style.transform = "translateY(0)";
-        }, 50);
-
-        // Ouvrir le détail au clic
-        card.addEventListener("click", (e) => {
-            // Animation confetti
-            const rect = card.getBoundingClientRect();
-            const x = rect.left + rect.width / 2;
-            const y = rect.top + rect.height / 2;
-            createConfetti(x, y);
-            
-            // Marquer comme vu quand on clique dessus
-            if (itemId) {
-                viewedItems.add(itemId);
-                card.classList.add("viewed");
-                saveViewedItems();
-            }
-            openDetail(item);
+    $('#dateDay').addEventListener('input', () => $('#dateDay').setCustomValidity(''));
+    $('#dateMonth').addEventListener('change', () => $('#dateDay').setCustomValidity(''));
+    $('#datePicker').addEventListener('submit', event => { event.preventDefault(); setDate(Number($('#dateMonth').value), Number($('#dateDay').value)); });
+    $('#todayButton').addEventListener('click', () => setDate(today.month, today.day));
+    const url = new URLSearchParams(location.search);
+    if (['edition', 'discovery', 'timeline'].includes(url.get('view'))) {
+        state.view = url.get('view');
+        document.querySelectorAll('[data-view]').forEach(button => {
+            button.classList.toggle('active', button.dataset.view === state.view);
+            button.setAttribute('aria-pressed', String(button.dataset.view === state.view));
         });
-
-        return card;
     }
-
-    /**
-     * Ouvre le panneau de détail
-     */
-    function openDetail(item) {
-        const detailPanel = document.getElementById("detailPanel");
-        const detailContent = document.getElementById("detailContent");
-        
-        if (!detailPanel || !detailContent) return;
-
-        const title = item.selected_title || "Untitled";
-        const year = item.year || "";
-        const type = (item.type || "").toLowerCase();
-        const extractHtml = item.extract_html || "";
-        const extractText = item.extract_short || "";
-        const extract = extractHtml || escapeHtml(extractText);
-        // Image avec lazy loading
-        const img = item.thumbnail
-            ? `<div class="detail-image">
-                <img src="${item.thumbnail}" alt="${escapeHtml(title)}" loading="lazy">
-               </div>`
-            : "";
-
-        // Métadonnées
-        const meta = [type, year].filter(Boolean).join(" • ");
-
-        // Lien Wikipedia
-        const wikiLink = item.wikipedia_url
-            ? `<a href="${item.wikipedia_url}" target="_blank" rel="noopener noreferrer" class="wiki-link">
-                Voir sur Wikipedia →
-               </a>`
-            : "";
-
-        // Construire le HTML
-        detailContent.innerHTML = `
-            ${img}
-            <h2>${escapeHtml(title)}</h2>
-            ${meta ? `<div class="meta">${meta}</div>` : ""}
-            <div class="extract">${extract}</div>
-            ${wikiLink}
-        `;
-
-        // Ajouter l'historique pour gérer le bouton retour
-        history.pushState({ detail: true }, "");
-        
-        // Ouvrir le panneau avec animation
-        requestAnimationFrame(() => {
-            detailPanel.classList.add("open");
-        });
-
-        // Focus pour l'accessibilité
-        detailPanel.setAttribute("tabindex", "-1");
-        detailPanel.focus();
+    const month = Number(url.get('month')), day = Number(url.get('day'));
+    const date = new Date(Date.UTC(2000, month - 1, day));
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31 && date.getUTCMonth() + 1 === month && date.getUTCDate() === day) {
+        state.month = month; state.day = day; $('#dateMonth').value = month; $('#dateDay').value = day;
     }
-
-    /**
-     * Ferme le panneau de détail
-     */
-    function closeDetail() {
-        const detailPanel = document.getElementById("detailPanel");
-        if (!detailPanel) return;
-        
-        detailPanel.classList.remove("open");
-        
-        // Retirer le focus après l'animation
-        setTimeout(() => {
-            detailPanel.removeAttribute("tabindex");
-        }, 300);
-    }
-
-    // Gestion du bouton fermer
-    const closeDetailBtn = document.getElementById("closeDetail");
-    if (closeDetailBtn) {
-        closeDetailBtn.addEventListener("click", closeDetail);
-    }
-
-    // Fermer avec la touche Escape
-    document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") {
-            const detailPanel = document.getElementById("detailPanel");
-            if (detailPanel && detailPanel.classList.contains("open")) {
-                closeDetail();
-            }
-        }
-    });
-
-    // Fermer au swipe-back Android/iOS (back button)
-    window.addEventListener("popstate", (e) => {
-        const detailPanel = document.getElementById("detailPanel");
-        if (detailPanel && detailPanel.classList.contains("open")) {
-            closeDetail();
-        }
-    });
-
-    /**
-     * Échappe le HTML pour éviter les injections XSS
-     */
-    function escapeHtml(text) {
-        const div = document.createElement("div");
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    /**
-     * Tronque un texte (en enlevant le HTML)
-     */
-    function truncateText(html, maxLength) {
-        const div = document.createElement("div");
-        div.innerHTML = html;
-        const text = div.textContent || div.innerText || "";
-        if (text.length <= maxLength) return html;
-        return text.substring(0, maxLength) + "...";
-    }
-
-    // Observer global pour le lazy loading
-    let lastCardObserver = null;
-    
-    /**
-     * Observe la dernière carte pour charger plus
-     */
-    function observeLastCard() {
-        const cards = feedEl.querySelectorAll(".tiktok-card");
-        if (cards.length === 0) return;
-
-        const lastCard = cards[cards.length - 1];
-        
-        // Arrêter l'observation précédente si elle existe
-        if (lastCardObserver) {
-            lastCardObserver.disconnect();
-        }
-        
-        lastCardObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting && hasMore && !isLoading) {
-                    loadFeed();
-                }
-            });
-        }, {
-            rootMargin: "200px" // Charger 200px avant d'arriver à la fin
-        });
-
-        lastCardObserver.observe(lastCard);
-    }
-
-    /**
-     * Charge les statistiques du jour
-     */
-    async function loadStats() {
-        if (!statsContainer) return;
-        
+    async function loadSponsor() {
         try {
-            const url = `stats.php?month=${currentDate.month}&day=${currentDate.day}`;
-            const res = await fetch(url);
-            
-            if (!res.ok) return;
-            
-            const data = await res.json();
-            
-            if (data.success && data.stats) {
-                const stats = data.stats;
-                
-                const statTotal = document.getElementById("statTotal");
-                const statEvents = document.getElementById("statEvents");
-                const statBirths = document.getElementById("statBirths");
-                const statDeaths = document.getElementById("statDeaths");
-                const statHolidays = document.getElementById("statHolidays");
-                
-                if (statTotal) {
-                    const oldVal = parseInt(statTotal.textContent) || 0;
-                    if (oldVal === 0 || oldVal !== stats.total) {
-                        animateValue(statTotal, oldVal, stats.total || 0, 500);
-                    }
-                }
-                if (statEvents) {
-                    const oldVal = parseInt(statEvents.textContent) || 0;
-                    if (oldVal !== stats.events) {
-                        animateValue(statEvents, oldVal, stats.events || 0, 500);
-                    }
-                }
-                if (statBirths) {
-                    const oldVal = parseInt(statBirths.textContent) || 0;
-                    if (oldVal !== stats.births) {
-                        animateValue(statBirths, oldVal, stats.births || 0, 500);
-                    }
-                }
-                if (statDeaths) {
-                    const oldVal = parseInt(statDeaths.textContent) || 0;
-                    if (oldVal !== stats.deaths) {
-                        animateValue(statDeaths, oldVal, stats.deaths || 0, 500);
-                    }
-                }
-                if (statHolidays) {
-                    const oldVal = parseInt(statHolidays.textContent) || 0;
-                    if (oldVal !== stats.holidays) {
-                        animateValue(statHolidays, oldVal, stats.holidays || 0, 500);
-                    }
-                }
-            }
-        } catch (error) {
-            console.error("Error loading stats:", error);
-        }
+            const response = await fetch('sponsor.php');
+            if (!response.ok) return;
+            const { ad } = await response.json();
+            if (!ad) return;
+            const slot = $('#sponsorSlot');
+            const target = safeURL(ad.destination);
+            if (!target) return;
+            const text = el('p');
+            text.append(el('span', '', ad.title), el('br'), el('strong', '', ad.body));
+            const link = el('a', '', ad.link_label + ' ↗');
+            link.href = target;
+            link.target = '_blank'; link.rel = 'sponsored noopener noreferrer';
+            slot.replaceChildren(el('span', 'support-label', ad.kind === 'house' ? 'SUPPORT THIS PROJECT' : 'ADVERTISEMENT'), text, link);
+            slot.hidden = false;
+        } catch { /* A missing advertisement must never interrupt reading. */ }
     }
-    
-    /**
-     * Gère les filtres par type
-     */
-    function initFilters() {
-        const filterBtns = document.querySelectorAll('.filter-btn');
-        filterBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const type = btn.getAttribute('data-type');
-                if (type === currentFilter) return;
-                
-                // Mettre à jour l'état actif
-                filterBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                
-                // Changer le filtre
-                currentFilter = type;
-                
-                // Recharger le feed
-                loadFeed(true);
-            });
-        });
-    }
-    
-    /**
-     * Progress bar de scroll
-     */
-    function initScrollProgress() {
-        const progressBar = document.getElementById('scrollProgress');
-        if (!progressBar) return;
-        
-        window.addEventListener('scroll', () => {
-            const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
-            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-            const scrolled = (winScroll / height) * 100;
-            progressBar.style.width = scrolled + '%';
-        }, { passive: true });
-    }
-    
-    /**
-     * Animation de compteur
-     */
-    function animateValue(element, start, end, duration) {
-        if (start === end) return;
-        let startTimestamp = null;
-        const step = (timestamp) => {
-            if (!startTimestamp) startTimestamp = timestamp;
-            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-            const value = Math.floor(progress * (end - start) + start);
-            element.textContent = value;
-            if (progress < 1) {
-                window.requestAnimationFrame(step);
-            } else {
-                element.textContent = end;
-            }
-        };
-        window.requestAnimationFrame(step);
-    }
-    
-    /**
-     * Animation confetti au clic sur une carte
-     */
-    function createConfetti(x, y) {
-        const colors = ['#ff3b30', '#34c95e', '#007aff', '#ff9500', '#ff2d55', '#af52de'];
-        const confettiCount = 30;
-        
-        for (let i = 0; i < confettiCount; i++) {
-            const confetti = document.createElement('div');
-            confetti.className = 'confetti';
-            confetti.style.left = x + 'px';
-            confetti.style.top = y + 'px';
-            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-            confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
-            
-            const angle = (Math.PI * 2 * i) / confettiCount;
-            const velocity = 50 + Math.random() * 50;
-            const vx = Math.cos(angle) * velocity;
-            const vy = Math.sin(angle) * velocity;
-            
-            document.body.appendChild(confetti);
-            
-            requestAnimationFrame(() => {
-                confetti.style.transition = 'all 0.8s cubic-bezier(0.5, 0, 0.5, 1)';
-                confetti.style.transform += ` translate(${vx}px, ${vy}px) rotate(${Math.random() * 720}deg)`;
-                confetti.style.opacity = '0';
-                
-                setTimeout(() => confetti.remove(), 800);
-            });
-        }
-    }
-
-    /**
-     * Initialise le chargement avec restauration de position
-     */
-    async function initialize() {
-        await loadStats();
-        
-        // Charger le premier batch
-        await loadFeed();
-        
-        // Restaurer la position (qui chargera plus si nécessaire)
-        await restoreScrollPosition();
-        
-        // Observer pour charger plus
-        observeLastCard();
-    }
-    
-    // Initialisation
-    initialize();
-    initFilters();
-    initScrollProgress();
-});
+    $('#surpriseButton').addEventListener('click', async () => {
+        const button = $('#surpriseButton');
+        button.disabled = true;
+        try {
+            const response = await fetch('calendar.php');
+            if (!response.ok) throw new Error('Could not open the calendar. Please try again.');
+            const data = await response.json();
+            const dates = (data.dates || []).filter(date => date.month !== state.month || date.day !== state.day);
+            if (!dates.length) { message('More dates are on their way. Explore the stories of this day first.'); return; }
+            const date = dates[Math.floor(Math.random() * dates.length)];
+            $('#dateDay').setCustomValidity('');
+            setDate(date.month, date.day);
+        } catch(error) { message(error.message); }
+        finally { button.disabled = false; }
+    });
+    loadSponsor();
+    load();
+})();

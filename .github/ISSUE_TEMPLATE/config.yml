@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Private security report
+    url: https://github.com/CorentinL5/WDHOTD/security/advisories/new
+    about: Report vulnerabilities privately instead of opening a public issue.
+  - name: Develop with us
+    url: https://github.com/CorentinL5/WDHOTD/blob/main/DEV_WITH_US.md
+    about: Read the local setup and contribution workflow.
