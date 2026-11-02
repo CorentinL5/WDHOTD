@@ -1,0 +1,21 @@
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule (^|/)\.(?!well-known(?:/|$)) - [R=404,L]
+    RewriteRule ^(?:data-cache|tmp|temp|tests|scripts|deploy|logs|dist|vendor|node_modules)(?:/|$) - [R=404,L]
+    RewriteRule ^(?:config|configure|import|import_service|sync|export|export_service|migrate|refresh_images)\.php$ - [R=404,L]
+</IfModule>
+
+<FilesMatch "(?i)(^\.|\.(sql|log|ini|bak|backup|env|yml|yaml|md|iml)$|^env\.example\.txt$)">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_headers.c>
+    Header onsuccess unset X-Content-Type-Options
+    Header onsuccess unset X-Frame-Options
+    Header onsuccess unset Referrer-Policy
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>

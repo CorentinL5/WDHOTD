@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/web.php';
+webHeaders();
 /** Public requests only read generated files. Database access belongs to CLI jobs. */
 function publicData(string $name): ?array {
     if (!preg_match('/^(?:\d{2}-\d{2}|calendar|settings)\.json$/D', $name)) return null;

@@ -1,0 +1,24 @@
+.story-actions { display: flex; align-items: center; justify-content: space-between; gap: 15px; width: 100%; margin-top: auto; }
+.story-actions .read-link { margin-top: 0; }
+.save-button { border: 1px solid var(--line); border-radius: 20px; padding: 6px 12px; font-size: 10px; background: transparent; white-space: nowrap; }
+.save-button[aria-pressed=true] { border-color: var(--green); color: var(--green); background: #354c3c0b; }
+.detail-body > .save-button { margin-bottom: 24px; }
+#savedCount { display: inline-block; margin-left: 3px; font-size: 9px; background: #deded1; border-radius: 10px; padding: 0 6px; }
+.collection-tools { display: flex; align-items: center; justify-content: space-between; gap: 25px; padding: 23px; margin-bottom: 30px; background: #eae8df; border: 1px solid var(--line); }
+.collection-tools strong { font-family: var(--serif); font-size: 26px; font-weight: 400; }
+.collection-tools p { font-size: 11px; color: var(--muted); max-width: 480px; margin: 7px 0 0; line-height: 1.8; }
+.collection-buttons { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.collection-buttons .outline-button { font-size: 11px; padding: 9px 12px; cursor: pointer; }
+.collection-buttons .text-button { font-size: 10px; }
+.import-label { display: inline-block; }
+#importSaved { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+.collection-buttons:has(#importSaved:focus-visible) .import-label { outline: 2px solid var(--accent); outline-offset: 4px; }
+.saved-heading { font-family: var(--serif); font-size: 40px; font-weight: 400; line-height: 1.1; margin: 0 0 28px; }
+.story-card h3, .hero-copy h2, .event-text, .context-text { overflow-wrap: anywhere; }
+.collection-notice { position: fixed; z-index: 30; bottom: 22px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 36px); background: var(--green); color: white; padding: 15px 22px; font-size: 12px; line-height: 1.7; box-shadow: 0 5px 25px #0002; }
+.confirm-body { padding: 30px; }
+.confirm-body h2 { font-family: var(--serif); font-size: 34px; font-weight: 400; line-height: 1.1; }
+.confirm-body p { color: var(--muted); font-size: 13px; margin-bottom: 25px; }
+.confirm-body button { margin: 0 10px 10px 0; }
+@media(max-width: 1000px) { .collection-tools { flex-direction: column; align-items: flex-start; } .explore-bar { flex-wrap: wrap; } .view-tabs { gap: 20px; } }
+@media(max-width: 600px) { .view-tabs { gap: 15px; flex-wrap: wrap; } .view-tab { font-size: 10px; } .story-card > .story-actions { grid-column: 2; flex-wrap: wrap; gap: 10px; } .save-button { padding: 5px 9px; } .collection-tools { padding: 18px; } .saved-heading { font-size: 33px; } }

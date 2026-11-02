@@ -26,6 +26,7 @@ tmp/
 temp/
 .import_lock
 /data-cache/
+/dist/
 
 # OS
 Thumbs.db

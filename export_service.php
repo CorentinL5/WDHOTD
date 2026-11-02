@@ -35,6 +35,6 @@ function exportHistory(PDO $db): int {
     $settings = $db->query('SELECT setting_key, setting_value FROM AppSetting')->fetchAll(PDO::FETCH_KEY_PAIR);
     // Export an explicit allowlist, never database credentials or private settings.
     $ads = $db->query("SELECT kind, title, body, destination, link_label, UNIX_TIMESTAMP(starts_at) AS starts_at, UNIX_TIMESTAMP(ends_at) AS ends_at FROM Advertisement WHERE active = 1 AND slug <> 'premium-launch' ORDER BY priority DESC, id DESC LIMIT 20")->fetchAll();
-    writePublicData('settings.json', ['support_url' => $settings['support_url'] ?? '', 'source_url' => $settings['source_url'] ?? '', 'ads' => $ads]);
+    writePublicData('settings.json', ['support_url' => $settings['support_url'] ?? '', 'source_url' => $settings['source_url'] ?? '', 'site_url' => $settings['site_url'] ?? '', 'ads' => $ads]);
     return count($calendar);
 }

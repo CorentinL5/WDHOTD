@@ -41,6 +41,8 @@ jobs:
         run: |
           find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
           node --check assets/js/feed.js
+          node --check assets/js/collection.js
+          node --test tests/collection.test.cjs
           php tests/images.php
       - name: Prepare isolated database and published fixtures
         run: |
@@ -48,6 +50,7 @@ jobs:
           php tests/seed.php
           php migrate.php
           php export.php
+          php tests/package.php
       - name: HTTP and cache integration
         run: |
           php -S 127.0.0.1:8000 > /tmp/wdhotd-http.log 2>&1 &
