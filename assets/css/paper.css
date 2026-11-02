@@ -1,52 +1,50 @@
-/* Neutral paper with a little grain and soft, irregular wrinkles. */
+/* Matte paper: no background images, gradients, dotted grain or fake folds. */
 :root {
-    --paper: #e9e7e0;
+    --paper: #eae7dc;
     --ink: #272c24;
     --muted: #66675e;
     --line: #c3c0b6;
     --accent: #a6472e;
     --green: #344735;
-    --paper-grain: url('../paper-grain.svg');
-    --paper-creases: url('../paper-creases.svg');
+    --paper-grain: none;
 }
 body {
     background-color: var(--paper);
-    background-image: var(--paper-creases), var(--paper-grain), radial-gradient(ellipse at 50% 0, #f1f0eb, #e3e0d7);
-    background-size: 1440px 1120px, 240px 240px, 100% 100%;
-    background-repeat: repeat, repeat, no-repeat;
-    background-position: center top, left top, center top;
-    background-blend-mode: normal, multiply, normal;
+    background-image: none;
+    box-shadow: inset 45px 0 100px -65px #6d675b18, inset -45px 0 100px -65px #6d675b12;
 }
+body::before, body::after { content: none; }
 .masthead { border-bottom: 3px double #6c6c54; }
 .masthead-note { border-left-color: #b8b8ab; color: #64675b; }
 .date-toggle { border-color: #bebdb3; background: #f1f0e980; }
 .intro { padding-bottom: 32px; }
 .journal-rule { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 12px 0; border-top: 1px solid var(--line); margin-top: 31px; color: #696b60; font-size: 8px; font-weight: 600; letter-spacing: 1.7px; }
 .explore-bar { margin-top: 0; border-top: 3px double #72715a; }
-.hero-story { border-color: #c5c1b5; background-color: #f0eee7; background-image: var(--paper-grain); box-shadow: 0 3px 12px #533b1f06; }
+.hero-story { border-color: #c5c1b5; background-color: #f0eee7; box-shadow: 0 3px 12px #533b1f06; }
 .hero-copy .story-number { font-size: 9px; color: #7b7b6d; padding-bottom: 12px; border-bottom: 1px solid var(--line); width: 100%; }
 .hero-visual, .card-visual, .hero-visual img, .card-visual img { background-color: #dfddd4; }
 .hero-copy .event-text, .story-card .event-text, .chrono-copy .event-text { color: #505846; }
 .story-grid > .story-card { border-top: 1px solid #b9b8ab; padding-top: 17px; }
 .section-label { color: #73766b; }
 .section-label:after { background: #c1beb3; }
-.image-placeholder { background-image: var(--paper-grain); }
+.image-placeholder { }
 .source-note { border-block-color: #bab9ac; }
-.project-support { background-color: #eeece4; background-image: var(--paper-grain); border-top: 3px double #9c9e8c; }
+.project-support { background-color: #eeece4; border-top: 3px double #9c9e8c; }
 .footer { border-top: 1px solid #bab9ac; margin-top: 30px; }
-.chrono-intro { background-color: #2c4030; background-image: var(--paper-grain); }
-.chrono-nav { background-color: var(--paper); background-image: var(--paper-grain); box-shadow: 0 8px 16px #e9e7e0ef; }
+.chrono-intro { background-color: #2c4030; }
+.chrono-nav { background-color: var(--paper); box-shadow: 0 8px 16px #eae7dcef; }
 .chrono-origin, .chrono-gap span, .chrono-year, .chrono-era, .chrono-end { background-color: var(--paper); }
-.chrono-era { background-image: var(--paper-grain); border-block: 3px double #b5b4a6; border-inline: 0; }
-.chrono-card { background-color: #f0eee7; background-image: var(--paper-grain); border-color: #c4c1b6; }
+.chrono-era { border-block: 3px double #b5b4a6; border-inline: 0; }
+.chrono-card { background-color: #f0eee7; border-color: #c4c1b6; }
 .chrono-card:hover { border-color: #aaa99b; }
 .chrono-card .image-placeholder { background-color: #dfdfd2; }
 .chrono-row.is-current .chrono-card { border-color: #aaa594; }
-.collection-tools { background-color: #e0dfd4; background-image: var(--paper-grain); border-top: 3px double #aeaf9b; }
+.collection-tools { background-color: #e0dfd4; border-top: 3px double #aeaf9b; }
 .save-button { border-color: #bbbbae; }
 .save-button[aria-pressed=true] { background-color: #34473510; }
-dialog { background-color: #efede6; background-image: var(--paper-grain); }
+dialog { background-color: #efede6; }
 .dialog-toolbar { background-color: #efede6; }
 .noscript-stories article { padding-block: 12px; border-top: 1px solid var(--line); }
 @media(max-width: 600px) { .journal-rule { gap: 12px; font-size: 7px; letter-spacing: 1.1px; } .journal-rule span:last-child { max-width: 130px; text-align: right; } .story-grid > .story-card { padding-top: 18px; } }
 @media print { body, .hero-story, .chrono-card { background: white; } .save-button, .collection-tools, .view-tabs, .collection-notice { display: none; } }
+@media print { body::before, body::after { display: none; } }
