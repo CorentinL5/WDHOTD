@@ -160,3 +160,27 @@ dialog, .dialog-toolbar { background: #f6f4ee; }
 @media print {
     body, .hero-story, .chrono-card { background: white; }
 }
+.back-to-top {
+    position: fixed;
+    right: max(22px, env(safe-area-inset-right));
+    bottom: max(22px, env(safe-area-inset-bottom));
+    z-index: 20;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 46px;
+    padding: 11px 18px;
+    border: 1px solid #526350;
+    border-radius: 4px;
+    background: var(--green);
+    color: #fff;
+    font-size: 12px;
+    text-decoration: none;
+    box-shadow: 0 3px 14px #252c2720;
+}
+.back-to-top:hover { background: #253b29; }
+.back-to-top span { font-size: 20px; line-height: 1; }
+.footer { padding-bottom: 90px; }
+body:has(dialog[open]) .back-to-top { visibility: hidden; }
+.collection-notice { bottom: max(86px, calc(env(safe-area-inset-bottom) + 64px)); }
+@media print { .back-to-top { display: none; } }
