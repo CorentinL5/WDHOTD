@@ -11,7 +11,7 @@ function check(bool $condition, string $label): void {
     $checks++;
     echo "PASS: $label\n";
 }
-function request(string $path, array $headers = []): array {
+function request(string $path, array $headers = [], ?array $payload = null): array {
     global $base;
     $responseHeaders = [];
     $curl = curl_init($base . $path);
@@ -19,6 +19,7 @@ function request(string $path, array $headers = []): array {
         if (str_contains($line, ':')) { [$key, $value] = explode(':', $line, 2); $responseHeaders[strtolower(trim($key))] = trim($value); }
         return strlen($line);
     }]);
+    if ($payload !== null) curl_setopt_array($curl, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => json_encode($payload)]);
     $body = curl_exec($curl);
     $code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
     $error = curl_error($curl);
@@ -44,6 +45,10 @@ check($code === 200 && $first['success'] && count($first['data']) === 7 && $firs
 check(!empty($first['data'][0]['event_text']), 'The historical event is separate from article context');
 [$code, $body] = request('/feed.php?month=11&day=2&type=all&limit=7', ['If-None-Match: ' . $headers['etag']]);
 check($code === 304 && $body === '', 'Unchanged cached responses return HTTP 304');
+[$code] = request('/feed.php?month=11&day=2&type=all&limit=7', ['If-None-Match: W/' . preg_replace('/^W\//', '', $headers['etag'])]);
+check($code === 304, 'Weak validators reuse the same cached representation');
+[$code] = request('/feed.php?month=11&day=2&type=events&limit=7', ['If-None-Match: ' . $headers['etag']]);
+check($code === 200, 'Cache validators are isolated by category');
 [$code, , $second] = request('/feed.php?month=11&day=2&type=all&limit=7&offset=7');
 check($code === 200 && !array_intersect(array_column($first['data'], 'id'), array_column($second['data'], 'id')), 'Consecutive feed pages do not overlap');
 [$code, , $limited] = request('/feed.php?month=11&day=2&limit=99999');
@@ -52,6 +57,21 @@ check($code === 200 && count($limited['data']) <= 100, 'The API caps response si
 check($code === 400 && !$invalid['success'], 'Invalid dates return HTTP 400');
 [$code, , $stats] = request('/stats.php?month=11&day=2');
 check($code === 200 && $stats['stats']['total'] === $first['meta']['total'], 'Statistics use the same published archive');
+[$code, , $siteStats] = request('/stats.php?scope=site');
+check($code === 200 && $siteStats['archive']['stats']['total'] > 0 && !isset($siteStats['audience']['ip']), 'Public project statistics expose aggregates only');
+[$code] = request('/metrics.php', ['Origin: ' . $base, 'Content-Type: application/json'], ['events' => ['pageview', 'open-story']]);
+check($code === 204, 'Small same-origin counter batches are accepted');
+[$code, , $afterCount] = request('/stats.php?scope=site');
+check($afterCount['audience']['totals']['pageview'] === $siteStats['audience']['totals']['pageview'] + 1, 'Accepted batches update the isolated aggregate store');
+[$code] = request('/metrics.php', ['Origin: ' . $base, 'Content-Type: application/json', 'Sec-GPC: 1'], ['events' => ['pageview']]);
+[$code, , $afterGPC] = request('/stats.php?scope=site');
+check($afterGPC['audience']['totals']['pageview'] === $afterCount['audience']['totals']['pageview'], 'GPC requests do not increment counters');
+[$code] = request('/metrics.php', ['Origin: ' . $base, 'Content-Type: application/json'], ['events' => ['private-custom-field']]);
+check($code === 400, 'Only fixed aggregate events can be counted');
+[$code] = request('/metrics.php', ['Origin: https://example.invalid', 'Content-Type: application/json'], ['events' => ['pageview']]);
+check($code === 400, 'Cross-origin browser counter submissions are rejected');
+[$code] = request('/metrics.php');
+check($code === 405, 'Counters do not accept GET writes');
 [$code, , $sponsor] = request('/sponsor.php');
 check($code === 200 && ($sponsor['ad'] === null || $sponsor['ad']['destination'] !== '#membership'), 'The old Premium promotion is gone');
 foreach (['import.php?force=1', 'sync.php', 'export.php', 'configure.php', 'config.php', 'migrate.php', 'refresh_images.php', 'newsletter.php'] as $path) {

@@ -14,7 +14,7 @@ $settings = publicData('settings.json') ?? [];
 $supportURL = publicSupportURL($settings['support_url'] ?? null);
 $sourceURL = publicSupportURL($settings['source_url'] ?? null);
 $siteURL = publicSiteURL($settings['site_url'] ?? null);
-$savedView = ($_GET['view'] ?? '') === 'saved';
+$savedView = in_array($_GET['view'] ?? '', ['saved', 'stats'], true);
 date_default_timezone_set('Europe/Brussels');
 $today = new DateTimeImmutable();
 $months = [1 => 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -51,6 +51,7 @@ $initialArchive = publicData(sprintf('%02d-%02d.json', $pageMonth, $pageDay));
     <link rel="stylesheet" href="<?= assetURL('assets/css/paper.css') ?>">
     <script src="<?= assetURL('assets/js/collection.js') ?>" defer></script>
     <script src="<?= assetURL('assets/js/feed.js') ?>" defer></script>
+    <script src="<?= assetURL('assets/js/metrics.js') ?>" defer></script>
 </head>
 <body id="top" data-month="<?= $today->format('n') ?>" data-day="<?= $today->format('j') ?>">
     <a class="skip-link" href="#stories">Skip to stories</a>
@@ -72,7 +73,7 @@ $initialArchive = publicData(sprintf('%02d-%02d.json', $pageMonth, $pageDay));
             <button class="text-button" id="todayButton" type="button">Back to today</button>
         </form>
         <div class="explore-bar">
-            <nav class="view-tabs" aria-label="Explore history"><button class="view-tab active" data-view="edition" aria-pressed="true">Daily edition</button><button class="view-tab" data-view="discovery" aria-pressed="false">Discover</button><button class="view-tab" data-view="timeline" aria-pressed="false">Timeline</button><button class="view-tab" data-view="saved" aria-pressed="false">Saved <span id="savedCount">0</span></button></nav>
+            <nav class="view-tabs" aria-label="Explore history"><button class="view-tab active" data-view="edition" aria-pressed="true">Daily edition</button><button class="view-tab" data-view="discovery" aria-pressed="false">Discover</button><button class="view-tab" data-view="timeline" aria-pressed="false">Timeline</button><button class="view-tab" data-view="saved" aria-pressed="false">Saved <span id="savedCount">0</span></button><button class="view-tab" data-view="stats" aria-pressed="false">Stats</button></nav>
             <div class="explore-actions"><span class="story-count" id="storyCount">Opening the archives…</span><button class="surprise-button" id="surpriseButton" type="button">Surprise me ↝</button></div>
         </div>
         <div class="category-bar"><div class="filters" role="group" aria-label="Story category"><button class="filter active" data-type="events" aria-pressed="true">Events</button><button class="filter" data-type="births" aria-pressed="false">Births</button><button class="filter" data-type="deaths" aria-pressed="false">Deaths</button><button class="filter" data-type="holidays" aria-pressed="false">Traditions</button><button class="filter" data-type="all" aria-pressed="false">All</button></div><label class="search"><span aria-hidden="true">⌕</span><input type="search" id="search" aria-label="Search stories" placeholder="A name, a year…"></label></div>

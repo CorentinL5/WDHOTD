@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS `OTDItem` (
     -- Useful indexes for fast search
                            INDEX `idx_type` (`type`),
                            INDEX `idx_pageid` (`pageid`),
-                           INDEX `idx_day_month` (`month`, `day`)
+                           INDEX `idx_day_month` (`month`, `day`, `year`, `id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `OTDImport` (

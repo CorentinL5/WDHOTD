@@ -4,7 +4,7 @@ These instructions are for the project owner and authorized deployment of the or
 
 ## What is ready
 
-The public application reads a generated archive and processes no payments, accounts, uploads or database writes. Saved stories and imported backups stay in the reader's browser. The build command creates a small PHP web root and optional ZIP containing only approved public files.
+The public application reads a generated archive and processes no payments, accounts, uploads or database writes. Its optional audience endpoint updates only small daily aggregate counters in a separate private file. Saved stories and imported backups stay in the reader's browser. The build command creates a small PHP web root and optional ZIP containing only approved public files.
 
 You still need a public domain, a PHP 8.1+ host, a valid TLS certificate and a way to publish updated releases. The local `.test` address and Windows scheduled task do not publish a site to the internet. Search engines also need time to discover and index a domain; a working site is not a promise of traffic.
 
@@ -69,6 +69,14 @@ The application sends CSP, anti-framing, MIME-sniffing protection, referrer poli
 CI tests generated packages and cache-backed endpoints. Final TLS, server rules and request limits depend on the chosen host and must be verified there.
 
 After publishing, run `php scripts/check-live.php https://YOUR_REAL_DOMAIN` for a small read-only check of the certificate, headers, indexing files and blocked private paths. It never disables certificate verification and does not run a load test or comprehensive security audit. Verify the HTTP-to-HTTPS redirect separately in the selected host configuration.
+
+## Public usage counters
+
+The Stats tab combines pre-exported archive totals with best-effort daily page-load/action counters. Neither route connects to MySQL. `metrics.php` accepts only small same-origin JSON POSTs containing fixed event names; there are no arbitrary properties, story identifiers or reader records. Actions are batched/deduplicated for five seconds in memory. GPC and DNT requests are not counted. Retention is 90 days, in UTC, with a 64 KB file limit and nonblocking locks. Counts are approximate, include reloads and may be affected by bots or dropped requests; they are not unique-person counts or fraud-resistant financial metrics.
+
+**Production:** set the PHP worker environment variable `WDHOTD_METRICS_DIR` to an absolute persistent private directory outside the deployed public web root. Its parent must already exist; the PHP user needs permission to create/write that directory. For example, provision a dedicated `/srv/wdhotd-counters` owned by the PHP worker, then set the variable through PHP-FPM or the host's environment configuration. Retain it when switching releases. If no valid external path is configured, production counters remain unavailable; the site still works. The packager never copies counter data. Development uses the ignored `/.metrics/` directory, protected by the Apache dotfile rule.
+
+Only the counter directory should be writable by public requests, not the archive or source. Apply server/CDN request limits to `metrics.php`; same-origin checks deter browser-based pollution but do not authenticate people or stop direct scripted submissions. Keep hosting logs private and configure their retention separately: counters store no IPs, but the web server may log them. There is no third-party analytics service, cookie, persistent visitor ID or browser fingerprint in this implementation. Do not claim a percentage of anonymity or blanket legal compliance.
 
 ## Keep it current
 

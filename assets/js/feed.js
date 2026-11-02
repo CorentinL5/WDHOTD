@@ -11,6 +11,8 @@
     let detailTrigger = null;
     let timelineObserver = null;
     let newestFirst = false;
+    const archiveCache = new Map();
+    let loadedType = null;
     const backToTop = $('#backToTop');
     const updateBackToTop = () => { backToTop.hidden = window.scrollY < 500; };
     window.addEventListener('scroll', updateBackToTop, { passive: true });
@@ -184,6 +186,8 @@
 
     function render() {
         if (timelineObserver) { timelineObserver.disconnect(); timelineObserver = null; }
+        $('.category-bar').hidden = state.view === 'stats';
+        if (state.view === 'stats') { renderStats(); return; }
         const items = state.view === 'saved' ? filtered().sort((a, b) => b.saved_at.localeCompare(a.saved_at)) : selection(filtered());
         $('#collectionTools').hidden = state.view !== 'saved';
         $('#editionDate').textContent = state.view === 'saved' ? 'Your collection' : dateLabel();
@@ -218,6 +222,45 @@
             $('#moreRow').hidden = state.count >= items.length;
         }
         updateSaved();
+    }
+
+    async function renderStats() {
+        $('#collectionTools').hidden = $('#moreRow').hidden = true;
+        $('#editionDate').textContent = 'The public archive';
+        $('#storyCount').textContent = 'Open statistics';
+        stories.replaceChildren();message('Opening the public statistics…');
+        try {
+            const response = await fetch('stats.php?scope=site');
+            if (!response.ok) throw new Error('Statistics are temporarily unavailable.');
+            const data = await response.json();
+            if (!data.success || !data.archive) throw new Error('Archive statistics are being prepared. Please try again later.');
+            if (state.view !== 'stats') return;
+            status.hidden = true;
+            const section = el('section','public-stats');
+            section.append(el('div','eyebrow','THE PROJECT, IN NUMBERS'),el('h2','','A small window. A growing archive.'),el('p','stats-description','Public figures about our stories and how the site is used. Your personal collection is never included.'));
+            function figures(metrics) {
+                const grid=el('div','stats-figures');
+                for (const [value,label] of metrics) {const cell=el('div','stats-figure');cell.append(el('strong','',String(value)),el('span','',label));grid.append(cell);}return grid;
+            }
+            const number = value => Number(value || 0).toLocaleString('en-GB');
+            const archive = data.archive;
+            section.append(figures([[number(archive.stats.total),'Stories to explore'],[number(archive.dates),'Dates in the archive'],[yearLabel(archive.yearRange.min),'Earliest year'],[yearLabel(archive.yearRange.max),'Latest year']]));
+            const breakdown = el('div','stats-breakdown');breakdown.append(el('h3','','Inside the archive'));
+            for (const [type,label] of [['events','Events'],['births','Births'],['deaths','Deaths'],['holidays','Traditions']]) {
+                const row=el('div','stats-category'),meter=el('meter');meter.min=0;meter.max=archive.stats.total;meter.value=archive.stats[type];meter.setAttribute('aria-label',label);
+                row.append(el('span','',label),meter,el('strong','',number(archive.stats[type])));breakdown.append(row);
+            }
+            section.append(breakdown,el('h3','','Visits & clicks · last 90 days'));
+            if (data.audience.enabled) {
+                const counts=data.audience.totals;
+                section.append(figures([[number(counts.pageview),'Page loads'],[number(counts['open-story']),'Stories opened'],[number(counts['view-timeline']),'Timeline opens'],[number(counts.support),'Support clicks']]));
+                const clicks=el('div','stats-category-details');
+                clicks.append(el('p','',`${number(counts['save-story'])} saves · ${number(counts['choose-date'])} date selections · ${number(counts.surprise)} surprise clicks · ${number(counts.source)} source-code clicks`));section.append(clicks);
+            } else section.append(el('p','stats-description','Audience counters are not available. No visitor figures are estimated or invented.'));
+            const privacy=el('aside','stats-privacy');
+            privacy.append(el('strong','','Simple counts. No reader profiles.'),el('p','','Only daily totals for a small list of actions are retained, for 90 days. No IP address, cookie, browser fingerprint, search text, story title or saved file is stored by these counters. GPC and Do Not Track disable counting. Counts are approximate: reloads and bots may affect them, and repeated actions within a five-second batch count once. Hosting access logs are separate.'));
+            section.append(privacy);stories.append(section);
+        } catch(error) {if (state.view === 'stats') message(error.message,true);}
     }
 
     function renderDiscovery(items) {
@@ -377,6 +420,7 @@
         const controller = new AbortController();
         state.controller = controller;
         state.items = [];
+        loadedType = null;
         state.position = 0;
         state.count = 7;
         stories.replaceChildren();
@@ -387,21 +431,33 @@
         $('#headerDate').textContent = $('#editionDate').textContent = dateLabel();
         const params = new URLSearchParams({ month: state.month, day: state.day, view: state.view });
         history.replaceState(null, '', `${location.pathname}?${params}`);
-        if (state.view === 'saved') { render(); stories.setAttribute('aria-busy', 'false'); return; }
+        if (state.view === 'saved' || state.view === 'stats') { render(); stories.setAttribute('aria-busy', 'false'); return; }
+        const requested = {month: state.month, day: state.day, type: state.type};
+        const cacheKey = `${requested.month}/${requested.day}/${requested.type}`;
+        const allKey = `${requested.month}/${requested.day}/all`;
+        const cached = archiveCache.get(cacheKey) || archiveCache.get(allKey);
+        if (cached && Date.now() - cached.at < 300000) {
+            archiveCache.delete(cacheKey);archiveCache.set(cacheKey,cached);
+            while (archiveCache.size > 8) archiveCache.delete(archiveCache.keys().next().value);
+            state.items = cached.items;loadedType = requested.type;render();stories.setAttribute('aria-busy','false');return;
+        }
         const all = [];
         try {
             let hasMore = true;
             while (hasMore) {
-                const query = new URLSearchParams({ month: state.month, day: state.day, type: 'all', limit: 100, offset: all.length });
+                const query = new URLSearchParams({ month: requested.month, day: requested.day, type: requested.type, limit: 100, offset: all.length });
                 const response = await fetch(`feed.php?${query}`, { signal: controller.signal });
                 let data;
                 try { data = await response.json(); } catch { throw new Error('The archives are temporarily unavailable. Please try again in a moment.'); }
                 if (!response.ok || !data.success) throw new Error(data.error || 'Could not load the stories.');
-                all.push(...data.data.map(item => ({ ...item, month: state.month, day: state.day })));
+                all.push(...data.data.map(item => ({ ...item, month: requested.month, day: requested.day })));
                 hasMore = data.meta.has_more && data.data.length > 0;
             }
             if (controller.signal.aborted) return;
             state.items = all;
+            loadedType = requested.type;
+            archiveCache.set(cacheKey,{items:all,at:Date.now()});
+            while (archiveCache.size > 8) archiveCache.delete(archiveCache.keys().next().value);
             render();
             if (!all.length) message('This date is not in the published archives yet. Try Surprise me to explore an available day.', true);
         } catch (error) {
@@ -423,7 +479,7 @@
         }
         history.replaceState(null, '', `${location.pathname}?${new URLSearchParams({ month: state.month, day: state.day, view: state.view })}`);
         document.querySelectorAll('[data-view]').forEach(tab => { tab.classList.toggle('active', tab === button); tab.setAttribute('aria-pressed', String(tab === button)); });
-        if (state.view === 'saved' || state.items.length) render();
+        if (state.view === 'saved' || state.view === 'stats' || (state.items.length && (loadedType === state.type || loadedType === 'all'))) render();
         else load();
     }));
     document.querySelectorAll('[data-type]').forEach(button => button.addEventListener('click', () => {
@@ -431,7 +487,7 @@
         state.position = 0;
         state.count = 7;
         document.querySelectorAll('[data-type]').forEach(tab => { tab.classList.toggle('active', tab === button); tab.setAttribute('aria-pressed', String(tab === button)); });
-        if (state.view === 'saved' || state.items.length) render();
+        if (state.view === 'saved') render(); else load();
     }));
     $('#search').addEventListener('input', event => { state.query = event.target.value; state.position = 0; state.count = 7; if (state.view === 'saved' || state.items.length) render(); });
     $('#moreButton').addEventListener('click', () => { const previous = state.count; state.count += 6; render(); const added = document.querySelectorAll('.story-grid .read-link')[previous - 1]; if (added) added.focus(); });
@@ -444,7 +500,7 @@
         if (date.getUTCMonth() + 1 !== month || date.getUTCDate() !== day) { $('#dateDay').setCustomValidity('This date does not exist.'); $('#dateDay').reportValidity(); return; }
         state.month = month;
         state.day = day;
-        if (state.view === 'saved') {
+        if (state.view === 'saved' || state.view === 'stats') {
             state.view = 'edition';
             document.querySelectorAll('[data-view]').forEach(tab => { tab.classList.toggle('active', tab.dataset.view === 'edition'); tab.setAttribute('aria-pressed', String(tab.dataset.view === 'edition')); });
         }
@@ -460,7 +516,7 @@
     $('#datePicker').addEventListener('submit', event => { event.preventDefault(); setDate(Number($('#dateMonth').value), Number($('#dateDay').value)); });
     $('#todayButton').addEventListener('click', () => setDate(today.month, today.day));
     const url = new URLSearchParams(location.search);
-    if (['edition', 'discovery', 'timeline', 'saved'].includes(url.get('view'))) {
+    if (['edition', 'discovery', 'timeline', 'saved', 'stats'].includes(url.get('view'))) {
         state.view = url.get('view');
         document.querySelectorAll('[data-view]').forEach(button => {
             button.classList.toggle('active', button.dataset.view === state.view);
