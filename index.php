@@ -1,4 +1,14 @@
 <?php
+// The PHP development server can route missing files back to index.php.
+// This application uses query parameters, not catch-all page routes.
+if (PHP_SAPI !== 'cli') {
+    $requestedPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+    $basePath = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/index.php')), '/');
+    if (!in_array($requestedPath, [$basePath . '/', $basePath . '/index.php'], true)) {
+        http_response_code(404);
+        exit;
+    }
+}
 require_once __DIR__ . '/public_data.php';
 $settings = publicData('settings.json') ?? [];
 $supportURL = publicSupportURL($settings['support_url'] ?? null);
