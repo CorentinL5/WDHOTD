@@ -10,6 +10,12 @@ $siteURL = isset($options['production']) ? $configuredSiteURL : null;
 $calendar = publicData('calendar.json')['dates'] ?? [];
 if (!$calendar) throw new RuntimeException('No published archive. Run the sync/export job first.');
 if (isset($options['production']) && !$siteURL) throw new RuntimeException('Configure the real public HTTPS site URL before building a production release.');
+if (isset($options['production'])) {
+    require_once __DIR__ . '/release_checks.php';
+    $checks = releaseChecks($siteURL, $calendar, 'publicData', new DateTimeImmutable('today', new DateTimeZone('Europe/Brussels')));
+    if (!$checks['ready']) throw new RuntimeException('Release preflight failed: ' . implode(' ', $checks['errors']));
+    foreach ($checks['warnings'] as $warning) fwrite(STDERR, 'Warning: ' . $warning . "\n");
+}
 $id = gmdate('Ymd-His') . '-' . bin2hex(random_bytes(3));
 $release = $project . '/dist/release-' . $id;
 $public = $release . '/public';

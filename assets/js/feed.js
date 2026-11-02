@@ -182,7 +182,7 @@
         $('#moreRow').hidden = true;
         $('#storyCount').textContent = `${items.length} stor${items.length === 1 ? 'y' : 'ies'} to explore`;
         if (!items.length) {
-            message(state.query ? 'No stories match your search.' : state.view === 'saved' ? 'Nothing saved in this selection yet. Save stories as you explore, or import a WDHOTD backup.' : 'No stories in this category for this date yet. Try Everything or explore another date.');
+            message(state.query ? 'No stories match your search.' : state.view === 'saved' ? 'Nothing saved in this selection yet. Save stories as you explore, or import a WDHOTD backup.' : 'No stories in this category for this date yet. Select All or explore another date.');
             updateSaved();
             return;
         }
